@@ -1,0 +1,9 @@
+# PATH_INFO funciona por defecto en Apache+PHP, así que el router de index.php
+# no necesita reglas de reescritura. Bloqueamos el acceso directo a la config
+# y a los .sql por si el servidor los sirviera como texto plano.
+<FilesMatch "^(db\.php|db\.example\.php)$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "\.sql$">
+  Require all denied
+</FilesMatch>

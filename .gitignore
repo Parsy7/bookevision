@@ -1,0 +1,17 @@
+# Configuración con credenciales — NUNCA subir
+api/db.php
+
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+*.iml
+.idea/
+.vscode/
+
+# Sistema
+.DS_Store
+Thumbs.db
