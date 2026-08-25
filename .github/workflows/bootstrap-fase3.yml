@@ -1,0 +1,149 @@
+name: Bootstrap Fase 3 - modelos y servicios
+
+# Mismo mecanismo que las fases anteriores: el conector de Claude es de solo
+# lectura, asi que esta Action lleva los archivos empaquetados (base64) y los
+# materializa ella misma, commiteando con el GITHUB_TOKEN. Se dispara al hacer
+# commit de este archivo. Cuando termine, puedes borrarlo.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/bootstrap-fase3.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Materializar archivos de la Fase 3
+        run: |
+          base64 -d > payload.tgz <<'B64'
+          H4sIAAAAAAAAA+09y3IbR5I+6yvKE4pBIwSB4ENULCiSq6E4Hk3YlsKS96JRAMXuItlSoxvuB2SY
+          RsT+yh7n4MPG3Oa4/JP9ks1HVXX1CyRtrjbWgY6w2OjOysrKzKrMysxqR+HZ1iwJVJRtZcXFhcry
+          MImHgUzzL+7tGsG1v7dHf+Gq/93d3t3/YvvJzt7uzs7+/tOdL0bbe/v7e1+I0f2R0H0VWS5TIb5I
+          k2TtkG96///02traEt/HUoDwVapiP5QiUEIFoR9e/yOG+zhPE3xUAFCqFmGGz4fiRZKJPJwn2fgB
+          ohCPxTRV80j6ajoGZKBGebFUYpqk4UUYy2gq5kkqpvM0gTYqmA5tszDOVJpDK3n9nxI6ytWPeSLi
+          Qi0S4avUl9y7mMrYv0zS6UD4SYz/ESCjEYgZiEuKbLo1jeHFVCyxUSSDxHYhvOmZOk9SBTDyPFfp
+          tE9kEI43SZSISPl5kcqxiCJ1QR1HUjx//RKQxYnIFHBAxYvrX6Tw4EU4gzHlkjk1k3EghYrEX9+8
+          +pYwmqGLHP7zCxn1h+I0EiHyNDwPfSAtdRgcOfwVKhPvkhRevh8+8COZZeKNnZ3i6oEQ54Q5jHNB
+          YAf20Zs8DeMLkS/n6kAAFT0tlp74WfSYEb0a8DFIMo9UHcexiBJfYo/NN6mSWdtzI9+DB/DKcFXF
+          QhMxbDQwTKo3YEqb8KwEzY4ZnkfMQqYBk5ib4zXK0sSDukO0gIJlucN1D7kuYCA/FGGqApFfhtmQ
+          eD9oeYHs5+f8E/nr/DaMdR4xR50HhpXOI8Ms5xHzw3nAjKjg4bE6j3CQ+HPVp6GeJUkkLlQuwuw7
+          lpM4PCINEoeHpQIdVEFfUkcVSK1ehPRc+nmSLh0ODs/TZPZXGKT3jZw/Y4YPRLCM5Sz0j8SHPuJy
+          GE704kVcHosP73p013svZIaqP7AQSAEB4A2/1/hLEBQBw+CdC3RcQhnBEKD50QHLEiNIvu2AM4Ik
+          SPOjA9ZIWI+Wf3TAsugJkm874FgqBKcF1EUnK4qmk390wKIGERzetMKAaq0e/F9bt8110xWV/h9K
+          XH26Z98Prxv8v53tUen/PR2h/7f7dOP/fZ6LfRjRqzn/uIajD/Od9Uj8ZDaPVA6+Efg4vpxf/5IX
+          ZKrBwCZidv0fGbp9jh+Z8botA5mxs3eSpKnK5kkMzo4U069O34ot9niSWGVbV2Gwmhpv5zvSRcfT
+          0W5NGDQ8HbD1M5k3HaB2lyZLitRvPBf+pZzDQMrnX4dZ/qw0RkeiZFDm+AdMZ6tvEAZtjgFT2+oy
+          1HwEprQNUhPb9sqh0jHw6Cai0daW/CQpYjLcDvTw0yXIzfMyssJAvXEF+sNIxRf55YGDh83I7dCw
+          m1BicVwDZt6t3ALN59KmsTUNg3Zjz1weCw9g+L5io/ri+Fj0Ivn4gyzg3zTJ4R/q4fFir9fwGbxW
+          p4GRnJiZ4DRjyRGBfNthRLUcCVDftw/HYTBQg+Q4T7gJ6iuTxIr57n3fNsdrOJNzz1M1H6vkvUIk
+          bQLo1/DkCXbl9Td2/ndxNez/JCtmM5ku79EPuMn+7+6MSvu/jfb/yZO90cb+f44LDfOfw8jEOiKY
+          23RfGmaOt2QF7mMuwIAnw6olJ9tet+Y1Q/6Gdeoz2PMXMldvw5k6FsU8gPvguYMK7VcOi31EcYL4
+          v/6JI3U8lgogDjVaqIBg4UehohzWSA9s4jwHr2bLbM+25iqFJVRG4U/wGANFC+lf/yL7FXQzGRe6
+          47Mo+aFQGUbZAFGSgTcEb5O6V6GZ9r/uXNADy63W1siztheGR23veMAtXshcxQFKFCMHiFg8Lnld
+          DTGcsM+pStAjMRJ//KOFF0eHWqBNv0Kz7w7uhWH478vLsJId28kxzNPla5lminwJDTBpJb/XdwhF
+          TmtC8ZbB42J23D8GHXkZg1uAjUZujIQFxa3Mr1s0ZO3hZnx/Y6ONJ/IrLsf+yzj7pNLPv//f3dnf
+          Ke3/zh7t/5/ubOz/57jQeP+bjBKYmmKeZOFZBDdgFaf+ZRL6ajoUp7HJ5/hk2sduUucQJ2quYtyN
+          kh9gEzzwii1lOgBkgCCZ4bMF2EqKJyBgKAk9bSc1csbidgD2lDJDYSowmDCo9aFfge+Cj8Gs5tLt
+          kPAZIE4tUc+JcVBOaJzkmfDtcOL10Q4Bojz0TR6AnRCb0jkUZXS2C9iQicA27NsFzAQjKN/1cDEj
+          4l+DVDjFpCJ1EYKHMZeppHycZhwm5PRoeLeNTWymqPpo3eg4b4I06AxKN2D+SamYIem2E5QSMAjI
+          mRg7qhfK14ElWHtEkRUyDZNyZE460gvBzfwRPSvMIOqsWH8ovilyCdrKGgM43mkjrjJ0Qd+jRiwk
+          +1hxkIilQDcN3NsQ3A8r/ee05nVl1IyTyXOBfDfQX60nB2CLItSELMRB+CFomG2j5ekiCStysMhe
+          1h5nmABzZgQ6NkzlTRkoHRtC2twHVrF6jSyR6dVx0ijod/33eRT6tA+YYiCIrfaURPWXt998PRbG
+          CR7YKQF3ou4Ia3zsDg/rmSbtwh0ePTDhEJqJh4dmItrZ9vPPXSB2jlkQrwGjOQBuI9+B9xPOvP4w
+          zL5N8tPZPF/2K+4jc/tWfqMWTD1T5VVTVeCz9I3H4kZ/kDod/MHbrigREc1I9drQ4qbV0z1GtE7a
+          xzzqStfAXetQ84TYQAO+st3oAY6Fo4H0XA9mLFxV5DdM/VgPyXlTI3AsmvqJ12rj4d335fh/7GZP
+          cMW8XyfwBv9vG2t+rP+3i/7f3tP97Y3/9zkuXJ9PTbUPa4Cut+EoBf6ARTbD0NAZOAdekIDRhTUB
+          3yn0SahoJkm5lEZ8LQVY1oUiWzGTc4mlLFPA5X+chOgKnU2eIcfzo8kzMMRH0wMhfyiufxEX4AEE
+          cpZkIkoyrp85P89UnmEvfmJzSYS4zD+V5gces39nzcYSn1EhkTH339AAYbx5zeQTSdVAEVDXCEKV
+          1SrW0C9kVCi9eBrkrZaaumgLlEBHbY+rxR7Vd9RpzWq/DAQ6vygdZBGLbyDCCxRpKS2038OSfDTG
+          JJ2XaInBn5s8vCJKV5OHQFi1lqMc4a2so8OQMmqBuNmY0e06Cwn9MyQSsgauLJrwuqomGlaSOMgN
+          6HYd9N1tIw9tLByZ03McyFhYgWs7qukdi6rI6S0TNxZW4vdsB1vi/+DFq3s1ADet/0+fOvn/vV2M
+          /++MnmzW/89xmfy/E/yBOW+e1l0CUxZwmmHgGm1Dnsoz+aFZITrG0B9vxzPxiAtKcTujbYzqrAnY
+          ev19sy5gS1GH9awCaqqzkFPOnl3yI8EDcir83PlbrkxHmiC8byb2qQfvqrr4asyD1ng34Vn12+LR
+          NK9uXDd5FWGSdU9gNSlQq3/enPB1k7313cxtEr02yXvgEJPKTzQ4pMYGZekJEwQ4XXquVm5jpVu2
+          ScBAmg4wjXEq/UvP+zgQi75dVwnHu4/lOv0eELaZpEXnELmjlf6bqrxI44qoNYvHwgrZGeeYSaDW
+          q7uaBCM8i5qFJAlODk2rfiPBLkSF1+NKOt55w/iYZWR856dxni7pSYm+X7MhuP7DVmsBO7VsS87D
+          if5xnwbghvX/yQicfbv+749w/d/d2d2s/5/jMis9insMM3ehKgZgLv2P8kKNL/N8voX/sBnACYa/
+          SsDhcAtan4cXoETzCd/WrQnANEsN17yvlCKshbMuizFQJ1GIlWng7b597ZTxo2NMpiVJhff6L6/B
+          Mn0j01C++FN/KN6EMew9wAEbY8yZ6/wJmS/PlK9SiofJApb08CdZibo+n4dveNrQjHeXBf57RH72
+          5FLJgNZzWBl6J3iCIc4fv8WS5TEsEHMKumG8Y+sDVhOvyIh8n4ZiUngmpizzS5re8Hg4pxRe7+HV
+          8/n8hDkOM/hPMlPfp9HqIcL2zP5APLaXLuoja1w+RbA/F7AgqmdkRysp0SMaQNkOVjeZLWO/Yq0w
+          hXAo5CcJuytSFWjiAek9x5r3+gOhuTC2/NDL8cS/VP7HVx89QFSxPFiUAJiRKS+UD5JHiOFZEiz7
+          xhJWFnSEb7WFHYnhO5vElcMsxlnhjxFWGPxaNm09DIM7sqpizMqxdTGt0zyu7H6ST7dU3TqYAhme
+          D+JjLrytdML36kJu+TK9kMLjhLgJAU870uBTkWCsgd27OhRN68eLnSlMzhdqUahooTS+ymGZpRR+
+          CvyRQ/G1jH+SIguRqjDAN+pHEBud2Nkb/Ut/2BQcrypWdu1+GXDxVrKcJ5nd7DZVX79oSNW8QOmM
+          qbPTmERG/fLbzyR5zZxFEgZHuFyqXP1KtebGv1mzV831S+8+Wtcux5mjOcmwtyDdzvSbZ6bejfyW
+          CVrbDNyDrOZFY6yDyj6JZtPtlLjo0uHq6O+szmynrS+6XrHtQvSdylQ+BmwpmWDf2K5ly65SB7nI
+          iQ2SdFjnUoq4fpNOdKv1r1ELGiSSVr6iXr6jTTEdOMzMDig8F6QdyMUiOwGGimdiZzQSP/8sas+P
+          DsXuaFRunfLLNPkkTn/ErB3O5N5pmoILhC6R9/Cq2njVHwt+hvJb9cymiajdpF9+Z1dl/2fcaU6h
+          39sWcP3+b2d3b9fu/56Onu7D/m9/e7Sp//0sV2X/R8tgy+7vPCryXKVb50kRB9I9JNTckrUHEsv3
+          LSHFX78/dPd9TajmmSYb7awFOnDbqOJiJr5OZPCGlkJxBZYhUgPYEsqADDC6mMuBULR0rmqB0Egn
+          sIJkwFUs6IDGgT7lTZmosyRHb/UPXxFg+ochd/lGLlStS10hOxCZXJi/Kqh1/UJlF1GSUYbOsYqm
+          c1OtDX2Ds0wbcnDIOc9HJs4WQOExnqyWD+OKXxEASocc6aMBQUpMpgKrwzmZbwqcbQSV8bamwjrr
+          iam/lueGgpZXlqY1KbSs9RSVU4SwrnJZs/uNMhsgZ+chz0KV4pk4rIILVVw9xQ+6Az6cEwdHUXBu
+          s+m5AHe56AbzpklOnwagQ3e2/CuwGU5by4S7L8bHeqhiE+nwMFCBakPV+4E6A2n4SjyyamqSvWE8
+          A2Jgp+Z8C+HUkOBN/SJNVZy/xU8qDAQTQ3QDdWX52YDqBTMVE1wfc76wbSRcqSkmikJYQii7XMZg
+          uJgogdFIjXZdsrfyVYWBcKFMwBzUPoz9cB4mfGwBfkIDGK9ivutB747Ef//7P815OHCi6CcXnYjt
+          US3NwOYQdpI5qCFWDMr4Qn2b4EccdO1YBdC7KuNBxyDVcNUX4AnCDbrZ8O/xsRMx8nSugOh3AkkI
+          T28qVXUvipTWXzExIn2hIrkExOaNNwujKMxgMwG0jsX2E/ADCQ/TeCwmvHjiRK0kTCZltuHd+4Na
+          GMtNmEycoDMAX3Gcylk5J1F5f+i8GOLqRqnzcsmbZOX9ofPCwr46+6D8HMgGieTktlJ3WMaeHpds
+          sCcHJrxmArJzmPjO8x8KVVAxpn7e2FZ+pdDIkTbp74DUtpiGg3yUkg6oHh41+OkeGkVI56ieA37s
+          HtV0szgNuSAOK5pSTOskhE0qQqoKrS4vBHdFduRKsCYvGpEjsiNXgq68CKkRGeOsCFCvM3WjyPWP
+          vJZm+KEUWKmyUFyCjsvoImFbRKHdBAUZXf+jUlfoyxiJLYsKK/pVUTBzDAV2T91AytKrK0WZ+89z
+          zxaK9l2p6PJUYlr5wZZS1M2GrA5fuupgkZiRldWS67sdloDVD3sAo5r1lqaxUwiJRZL2sVqodFlm
+          qErcbTHlE4r6tYZkeOeNGtW15e5cMLTvpTfPjjpR7S0/jnEhXuKUwTL0zCQtc33czN3S85TVu3lc
+          YIdu1DYMdFPTgNzLBryOHoSaDSX42fIVSgGXxHO0ncYkhTFjMoljGPtQF4rK1UFNGDh+GAp0BIPB
+          jKR2hd0z1nyUeiC8sO9kGDXNgKDZ5F34/qAGKLEWiymGt2STuJhVkxb2yxayVi8M0IfO4W5xXC8y
+          NwXiY0dOTgxMmicr20nNqMDKNkzOdcDIeVXyfGLFWa6/jQnvTmXyoS1Ul8aRk68jHrCa5P6lwOTB
+          lW3n6KC6EZtePkz8pENZW0KcWNwe0KEML0/wiGAQZujZx8L4df3aZKMgUqZyLnou14mBrUinF7UC
+          AyC3ZelCiZsyalP8bkNQHfXVJY9gJIH6QI6sLr0GNzZBF/X678LTh0xmtIZTZXjSr1SpcYmaw7NJ
+          nhT+pVeLl+FQCXvLUNFLvv1ATYF8Tp9+qo2+MsaDdno4SBnBtORBS3DaK7XwSZk2Kd3X6okVfWjU
+          5Eu8siwMP2Nlj4/gj7NIxh8xyrgEI4/fR4uwW+X75jsdiT3/MjTcOgensJNduF2usgvVuGK02OQc
+          3FF1Wpjn8Bu7pc9G2aHadeJYeOXuTZ9DtC/HZUvLF/vStrYnA2qtGUOv1yFLo1vVBa2FaYDc8Kxh
+          hauL5SHC3tCdUyppy1EHpgx1UC8/HVSKT6uiw8BKpS7GhPJ15WWlJJEqLJ1yxLKSsl6KqOslnTJE
+          E9J2Vud3FNXR5aRYnYO/1408VbNkoRxazQEjRuFGvt1+htzOs2BfskPQb5ub1cw38Hqdl0L5gfbs
+          Nuq7a2ooHI9ayD2zadNKXjoMbsIhHVoXo+4gTKxvYFZRZxq5NlS6B3rKh3WVc9S9Mo+159G/o+1e
+          NUQ99CMlU+Ns2W3Y8RA8cF9F9sUtrPFtbeJzE9FoMXxG7mZGdnWrnf61nmP3YGwY5ZD3n151Fz4Q
+          Ex2XqdqGr7pCLsKrb3/6jYwVjuTb5FNNJztp1Kqn6WiWKzDS8v1v1HSambzjdpwku9XO04KPzeH+
+          DeziWQiuzAz3b6nM8HuaHI06k1guGlI9jBQ4J3x4lmp0bn8rK17e41MHN2raTRJ39wrO3C1TqqUD
+          a7+8gFdr5eCkvXTQnTzux3M0yyrUGwYet+1Xx2uc2tYN0h382C4eun4sa0lUcqwl4rKG11pneITu
+          /qURoLEvKspcasGqfZl4bQLf1WVCh7l9jkpXbSZ/W6L0Z5xPXhkQjEy7EPo7Vy2b40pjveHRsXBN
+          vv6OghMFF4R/LMr4tzBR97H9SIb70kS9x50UdR6VNATWbX52B1ymTR2XOat4a0R671BDYz7+UDE4
+          Lkjntqk1cO61xqBxl1HfROFq/ZZC7HzWuv1EcqYurv9JkfbAnmKWfl5gTsUerJmUAXHPDQUNbCTJ
+          9W7W8dgoUWXD3evBQtB0kg/WYbQaUGKseslrW5ttntnDV9z6O5K4stGpCazg+eXSM6ekuXh5YTw6
+          DEgtnACV/ZDMhD0eLHa0TrrL5uoEd87t24Cb88k/HrM5FU07C30C3g7XYBjSafRX55759G6F8dzb
+          HLq5HbxGPhfPxAg49ngbODYXj0Qd2llTVjUOnJCatfKgqWq35AaD8S6rLfjT4TLq2Azy0uzQGoD0
+          hQGMMmq5l98n7pfGoJvnBvhLpyplbY/8/YFKh/jJWqeztTJD2C+t3ekSl4arrPwlZWuHurb3+mjX
+          UWBhW6jQrdrmTK3WCr+4hJbOphp5XasdusTMWp5g5i2i7JtNPnMKk7746XwJwWYQa2b3do6mXZca
+          ypu2aW0yp3Mmk1fzo3fvtUbSbmshU4EZuNEB/HkGjZshVXjz6FFdNhRR7QimmsAypRExpIUjchZ+
+          mII2OBC+L4OXermx39hshnFxl96uFK0rvkVK7Y5glC5OgVwZyiDwgC2e81iUX/ceVB7XDi7aR7w2
+          1UioWW+jqZYp1Rc7I/d33xnAyt7h1/3DuLBO4KrOOG1k6FNgth/3iw4NjoKZQ+G0LpoNMbksxYbM
+          UJeJ5lPalBPX/7hDFtujfsNfbe6i7VGnyUA4alDpSX/+CgD0GWK4oaiQ0ueAxa7ta2V0jApEmlnx
+          Aww3UKzVuke4T1nCBLGpcryDzW0yfGBIyZI0ByduIM5KEtlLYKUAY33Gt3bS6t/gtmqg2gp2NuT+
+          8iWBmB+1UeCcxXXImQmN+EkyxwAKkFmlLZkPP8Kkcb9L7yqFxop/YG6fZbRWeaMBIDIjeVSdKH+L
+          /xY/vILX2GaFv3o1kBoyi8mqASyrmbojEUL3CHdN/KAGLZsiy2QT0SbN+9dkAdu4MMASeoqZYEoB
+          pkEZNOmKKWTFHCu6DDhjBJxcJAE62vyuI7K+838/gbdaqW27OxzCN6MqoVzt4Tw6Thyq5UFCBu4B
+          /PLMva5Fwv8Xgvk/JTCazYfkNtfm2lyba3Ntrs21uTbX5tpcm2tzba7N9Xu6/gfLDUsNAHgAAA==
+          B64
+          tar xzf payload.tgz
+          rm payload.tgz
+
+      - name: Commit y push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "Sin cambios: los archivos ya estaban en el repo."
+          else
+            git commit -m "Fase 3 - modelos, ApiService y ReviewSession [via Actions]"
+            git push
+          fi
