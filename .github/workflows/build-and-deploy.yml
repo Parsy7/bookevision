@@ -1,0 +1,91 @@
+name: Build APK y desplegar
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.6'
+          channel: 'stable'
+
+      # El repo no incluye la carpeta android/: la genera el propio CI.
+      # --org fija un applicationId estable (es.letsshuffle.bookevision).
+      - name: Generar plataforma Android
+        run: flutter create --platforms=android --org es.letsshuffle .
+
+      # Gotcha: el APK de release de Flutter NO lleva INTERNET en el manifest
+      # principal (solo en debug). Sin esto, las llamadas a la API fallan en release.
+      - name: Asegurar permiso de INTERNET
+        run: |
+          M=android/app/src/main/AndroidManifest.xml
+          if ! grep -q "android.permission.INTERNET" "$M"; then
+            sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' "$M"
+          fi
+          echo "--- manifest (primeras lineas) ---"
+          sed -n '1,6p' "$M"
+
+      - name: Instalar dependencias
+        run: flutter pub get
+
+      - name: Build APK release
+        run: flutter build apk --release
+
+      # Firma con keystore SOLO si existen los secrets (ahora no, sale debug).
+      # Se re-firma el APK con apksigner para no tener que tocar Gradle.
+      - name: Firmar APK con keystore (opcional)
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -n "$KS" ]; then
+            echo "$KS" | base64 -d > release.keystore
+            BT=$(ls -d "$ANDROID_SDK_ROOT"/build-tools/* | sort -V | tail -1)
+            APK=build/app/outputs/flutter-apk/app-release.apk
+            "$BT/zipalign" -f -p 4 "$APK" aligned.apk
+            "$BT/apksigner" sign --ks release.keystore \
+              --ks-pass "pass:$KS_PASS" --key-pass "pass:$KEY_PASS" \
+              --ks-key-alias "$KEY_ALIAS" aligned.apk
+            mv aligned.apk "$APK"
+            echo "APK firmado con keystore de release."
+          else
+            echo "Sin keystore: APK con firma debug (desinstala la version anterior antes de reinstalar)."
+          fi
+
+      - name: Subir APK al servidor
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avz
+          path: build/app/outputs/flutter-apk/app-release.apk
+          remote_path: ${{ secrets.APK_REMOTE_PATH }}
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_user: ${{ secrets.SSH_USER }}
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+  deploy-api:
+    runs-on: ubuntu-latest
+    needs: build-apk
+    steps:
+      - uses: actions/checkout@v4
+
+      # --delete deja el remoto idéntico al repo; --exclude=db.php protege las
+      # credenciales que subiste a mano (nunca están en git).
+      - name: Subir API PHP al servidor
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avz --delete --exclude=db.php
+          path: api/
+          remote_path: ${{ secrets.API_REMOTE_PATH }}
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_user: ${{ secrets.SSH_USER }}
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
