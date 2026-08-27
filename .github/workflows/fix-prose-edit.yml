@@ -1,0 +1,73 @@
+name: Fix - edicion de bloque en el sitio
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fix-prose-edit.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Materializar archivo corregido
+        run: |
+          base64 -d > payload.tgz <<'B64'
+          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
+          B64
+          tar xzf payload.tgz
+          rm payload.tgz
+
+      - name: Commit y push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "Sin cambios."
+          else
+            git commit -m "Fix - edicion manual de bloque en el sitio, sin salto de scroll [via Actions]"
+            git push
+          fi
