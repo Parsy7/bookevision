@@ -3,43 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-import 'package:bookevision/models/review.dart';
-import 'package:bookevision/models/review_state.dart';
-import 'package:bookevision/models/suggestion.dart';
-import 'package:bookevision/services/api_service.dart';
 import 'package:bookevision/services/review_session.dart';
 import 'package:bookevision/theme/app_theme.dart';
 import 'package:bookevision/widgets/suggestion_card.dart';
 
-const _revision = Review(
-  id: 'x',
-  format: 'la-jaula-rota-review-v4',
-  title: 'Capítulo de prueba',
-  chapter: 'El capítulo entero con su frase original dentro y algo más.',
-  suggestions: [
-    Suggestion(
-      orden: 0,
-      type: 'replace',
-      title: 'Una sugerencia',
-      original: 'su frase original',
-      proposed: 'su frase propuesta',
-    ),
-  ],
-);
-
-class _ApiFalsa extends ApiService {
-  int guardados = 0;
-
-  @override
-  Future<Review> getRevision(String id) async => _revision;
-
-  @override
-  Future<ReviewState> getEstado(String id) async =>
-      const ReviewState(answers: [], manualEdits: {});
-
-  @override
-  Future<void> putEstado(String id, ReviewState state) async => guardados++;
-}
+import 'soporte.dart';
 
 EditableTextState _campo(WidgetTester t) =>
     t.state<EditableTextState>(find.byType(EditableText));
@@ -53,7 +21,7 @@ void main() {
 
   testWidgets('mover la selección no reconstruye el lector entero',
       (tester) async {
-    final sesion = ReviewSession(api: _ApiFalsa());
+    final sesion = ReviewSession(api: ApiFalsa());
     await sesion.load('x');
     sesion.setCustom(
         0,
@@ -93,7 +61,7 @@ void main() {
   });
 
   testWidgets('escribir sí sigue guardándose', (tester) async {
-    final sesion = ReviewSession(api: _ApiFalsa());
+    final sesion = ReviewSession(api: ApiFalsa());
     await sesion.load('x');
     sesion.setCustom(0, 'Mi versión');
 
@@ -110,7 +78,7 @@ void main() {
 
   testWidgets('"Usar sugerencia" deja el cursor en un sitio válido',
       (tester) async {
-    final sesion = ReviewSession(api: _ApiFalsa());
+    final sesion = ReviewSession(api: ApiFalsa());
     await sesion.load('x');
     sesion.setCustom(0, 'Algo que tenía escrito');
 

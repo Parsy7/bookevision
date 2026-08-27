@@ -48,6 +48,24 @@ class _ReviewerViewState extends State<_ReviewerView> {
   final Map<int, GlobalKey> _cardKeys = {};
   int _lastFocused = -1;
 
+  /// Acciones del bloque de prosa que se está editando, si hay alguno. La barra
+  /// de abajo las pinta en lugar de la navegación entre pendientes: dentro del
+  /// bloque quedarían fuera de pantalla en cuanto el bloque es largo.
+  ProseEditActions? _edicion;
+
+  /// Solo se puede editar un bloque a la vez: si empiezas otro, el anterior se
+  /// cancela. El aviso de salida del anterior llega *después* del de entrada
+  /// del nuevo, por eso se compara la identidad antes de quitar la barra.
+  void _cambioEdicion(ProseEditActions acciones, {required bool activa}) {
+    if (activa) {
+      final anterior = _edicion;
+      setState(() => _edicion = acciones);
+      if (anterior != null) anterior.cancelar();
+    } else if (identical(_edicion, acciones)) {
+      setState(() => _edicion = null);
+    }
+  }
+
   void _ensurePieces(Review r) {
     if (_piecesForId == r.id && _pieces != null) return;
     _pieces = buildReaderPieces(r);
@@ -179,7 +197,7 @@ class _ReviewerViewState extends State<_ReviewerView> {
         ),
         body: _body(context, session),
         bottomNavigationBar: session.loadStatus == LoadStatus.ready
-            ? _bottomBar(session)
+            ? _bottomBar(context, session)
             : null,
       ),
     );
@@ -240,6 +258,7 @@ class _ReviewerViewState extends State<_ReviewerView> {
           text: p.text,
           start: p.start,
           end: p.end,
+          onEditing: _cambioEdicion,
         );
       case AffectedPiece():
         return Container(
@@ -271,7 +290,45 @@ class _ReviewerViewState extends State<_ReviewerView> {
     }
   }
 
-  Widget _bottomBar(ReviewSession session) {
+  /// Barra fija mientras se edita un bloque: Guardar y Cancelar siempre a mano,
+  /// sin depender de dónde acabe el bloque.
+  ///
+  /// El `Scaffold` **no** sube el `bottomNavigationBar` por encima del teclado
+  /// (solo encoge el cuerpo), así que el hueco del teclado se reserva aquí a
+  /// mano; si no, la barra queda justo debajo y no se ve.
+  Widget _barraEdicion(BuildContext context, ProseEditActions a) {
+    return Padding(
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.gapSm),
+          decoration: const BoxDecoration(
+            color: AppColors.bg,
+            border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+          ),
+          child: Row(
+            children: [
+              Expanded(child: AppButton(label: 'Guardar', onPressed: a.guardar)),
+              const SizedBox(width: AppSpacing.gapSm),
+              Expanded(
+                child: AppButton(
+                  label: 'Cancelar',
+                  variant: AppButtonVariant.cancel,
+                  onPressed: a.cancelar,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _bottomBar(BuildContext context, ReviewSession session) {
+    final edicion = _edicion;
+    if (edicion != null) return _barraEdicion(context, edicion);
     final c = session.counts();
     final allResolved = session.allResolved;
     return SafeArea(

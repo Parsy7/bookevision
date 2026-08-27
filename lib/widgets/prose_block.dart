@@ -33,16 +33,42 @@ import '../theme/app_text.dart';
 ///    "bloque editado", no de "bloque en edición": entrar a editar no cambia
 ///    ni la altura ni el ancho útil. El modo edición se ve por el fondo, que
 ///    no ocupa espacio.
+/// Acciones del bloque que se está editando, para que la pantalla las pinte
+/// **fuera** de él. Dentro no pueden ir: un bloque de capítulo puede ser mucho
+/// más alto que la pantalla, así que unos botones al final del bloque quedan
+/// fuera de vista justo cuando hacen falta.
+/// Solo Guardar y Cancelar: un tercer botón no cabe a lo ancho en un móvil
+/// estrecho sin bajar de los 44dp de área táctil. Restaurar el original sigue
+/// donde estaba, en el conmutador del bloque ya editado.
+class ProseEditActions {
+  final VoidCallback guardar;
+  final VoidCallback cancelar;
+
+  const ProseEditActions({required this.guardar, required this.cancelar});
+}
+
 class ProseBlock extends StatefulWidget {
   final String text; // texto original del hueco
   final int start;
   final int end;
+
+  /// Aviso de entrada y salida del modo edición. Si se pasa, el bloque deja de
+  /// pintar sus propios botones y espera que la pantalla los ponga en una barra
+  /// fija; si no, los pinta debajo del texto para poder usarse suelto.
+  ///
+  /// Al salir se reenvían las **mismas** acciones que se enviaron al entrar,
+  /// para que la pantalla distinga quién está avisando: si mientras editas un
+  /// bloque empiezas a editar otro, el primero avisa de su salida *después* de
+  /// que el segundo haya avisado de su entrada.
+  final void Function(ProseEditActions acciones, {required bool activa})?
+      onEditing;
 
   const ProseBlock({
     super.key,
     required this.text,
     required this.start,
     required this.end,
+    this.onEditing,
   });
 
   @override
@@ -58,6 +84,9 @@ class _ProseBlockState extends State<ProseBlock> {
   /// Sobre el `Text` de lectura: da la caja contra la que se mide en qué
   /// carácter se ha pulsado.
   final _textKey = GlobalKey();
+
+  /// Las acciones que se enviaron a la pantalla al entrar en edición.
+  ProseEditActions? _acciones;
 
   /// Estilo del bloque ya resuelto y **cerrado** (`inherit: false`).
   ///
@@ -124,31 +153,46 @@ class _ProseBlockState extends State<ProseBlock> {
       _editing = true;
       _showingOriginal = false;
     });
+    final acciones = ProseEditActions(guardar: _save, cancelar: _cancel);
+    _acciones = acciones;
+    widget.onEditing?.call(acciones, activa: true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _focus.requestFocus();
     });
   }
 
+  /// Sale del modo edición y avisa a la pantalla de que su barra sobra.
+  void _terminar() {
+    _focus.unfocus();
+    setState(() => _editing = false);
+    final acciones = _acciones;
+    _acciones = null;
+    if (acciones != null) {
+      widget.onEditing?.call(acciones, activa: false);
+    }
+  }
+
   void _save() {
+    if (!_editing) return;
     context
         .read<ReviewSession>()
         .setManualEdit(widget.start, widget.end, widget.text, _controller.text);
-    _focus.unfocus();
-    setState(() => _editing = false);
+    _terminar();
   }
 
   void _restore() {
     context.read<ReviewSession>().removeManualEdit(_blockId);
-    _focus.unfocus();
-    setState(() {
-      _editing = false;
-      _showingOriginal = false;
-    });
+    if (!_editing) {
+      setState(() => _showingOriginal = false);
+      return;
+    }
+    _showingOriginal = false;
+    _terminar();
   }
 
   void _cancel() {
-    _focus.unfocus();
-    setState(() => _editing = false);
+    if (!_editing) return;
+    _terminar();
   }
 
   @override
@@ -174,10 +218,10 @@ class _ProseBlockState extends State<ProseBlock> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_editing) _field() else _readable(edit, shown),
-          if (_editing) ...[
+          if (_editing && widget.onEditing == null) ...[
             const SizedBox(height: AppSpacing.gapSm),
             _editTools(),
-          ] else if (changed) ...[
+          ] else if (!_editing && changed) ...[
             const SizedBox(height: AppSpacing.gapSm),
             _viewSwitch(),
           ],
