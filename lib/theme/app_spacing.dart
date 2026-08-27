@@ -13,4 +13,13 @@ class AppSpacing {
   static const double titleSubtitle = 4;
   static const double subtitleBody = 24;
   static const double iconText = 8;
+
+  /// Ancho del cursor de escritura (`TextField.cursorWidth`).
+  static const double caret = 2;
+
+  /// Hueco que Flutter reserva a la derecha del texto cuando es editable: el
+  /// cursor más 1dp de aire (`RenderEditable._kCaretGap`). El texto en modo
+  /// lectura reserva ese mismo hueco para romper línea exactamente donde lo
+  /// hará el campo de edición.
+  static const double caretGutter = caret + 1;
 }
