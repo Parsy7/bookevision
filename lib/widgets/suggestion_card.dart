@@ -333,7 +333,10 @@ class _CustomEditor extends StatefulWidget {
 class _CustomEditorState extends State<_CustomEditor> {
   late final TextEditingController _controller =
       TextEditingController(text: widget.value);
-  bool _suppress = false;
+
+  /// Último texto ya notificado hacia arriba. Sirve para distinguir un cambio
+  /// de texto de un simple movimiento del cursor o de la selección.
+  late String _ultimoTexto = widget.value;
 
   @override
   void initState() {
@@ -342,20 +345,32 @@ class _CustomEditorState extends State<_CustomEditor> {
   }
 
   void _onChanged() {
-    if (_suppress) return;
+    // El controlador avisa de cualquier cambio de su valor, y el valor incluye
+    // la selección: mover el cursor o arrastrar para seleccionar una frase
+    // también dispara esto. Reenviarlo repintaba el capítulo entero (y
+    // reiniciaba el autosave) en cada fotograma del arrastre, que es lo que
+    // hacía que el gesto de seleccionar se atascara.
+    if (_controller.text == _ultimoTexto) return;
+    _ultimoTexto = _controller.text;
     widget.onChanged(_controller.text);
   }
 
   @override
   void didUpdateWidget(covariant _CustomEditor old) {
     super.didUpdateWidget(old);
-    // Cambio externo (relleno/reset): re-sincroniza sin re-notificar durante el
-    // build (por eso se suprime el listener mientras se fija el texto).
-    if (widget.value != _controller.text) {
-      _suppress = true;
-      _controller.text = widget.value;
-      _suppress = false;
-    }
+    if (widget.value == _controller.text) return;
+    // Cambio externo (rellenar desde el original o la sugerencia, empezar de
+    // cero, un reset). Se actualiza primero `_ultimoTexto` para no reenviar
+    // hacia arriba lo que acaba de llegar de arriba.
+    //
+    // La selección se fija a mano: el setter `controller.text =` la deja
+    // inválida, y con el campo enfocado EditableText resuelve eso mandando el
+    // cursor al final del texto por su cuenta.
+    _ultimoTexto = widget.value;
+    _controller.value = TextEditingValue(
+      text: widget.value,
+      selection: TextSelection.collapsed(offset: widget.value.length),
+    );
   }
 
   @override
