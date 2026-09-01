@@ -94,13 +94,19 @@ class SuggestionCard extends StatelessWidget {
         _label('Propuesta'),
         _box(s.proposed ?? '', suggested: true),
         const SizedBox(height: AppSpacing.gapMd),
-        _choices(context, [
+        _choices(context, const [
           _Choice('Mantener original', Choice.original),
           _Choice('Aceptar sugerencia', Choice.proposed),
           _Choice('Escribir yo', Choice.custom),
+          _Choice('Eliminar el original', Choice.omit),
         ], a),
         if (a.choice == Choice.custom)
           _customArea(context, a, insert: false),
+        if (a.choice == Choice.omit) ...[
+          const SizedBox(height: AppSpacing.gapSm),
+          _aviso('El fragmento original desaparecerá del capítulo. No se '
+              'pone nada en su lugar.'),
+        ],
       ],
     );
   }
@@ -120,7 +126,7 @@ class SuggestionCard extends StatelessWidget {
         _label('Texto propuesto para añadir'),
         _box(s.proposed ?? '', suggested: true),
         const SizedBox(height: AppSpacing.gapMd),
-        _choices(context, [
+        _choices(context, const [
           _Choice('No añadir nada', Choice.original),
           _Choice('Añadir sugerencia', Choice.proposed),
           _Choice('Escribir lo que añadiré', Choice.custom),
@@ -243,6 +249,19 @@ class SuggestionCard extends StatelessWidget {
       }).toList(),
     );
   }
+
+  /// Aviso de lo que va a pasar, para una decisión que borra texto.
+  Widget _aviso(String texto) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.card),
+        decoration: BoxDecoration(
+          color: AppColors.bgElevated,
+          borderRadius: AppRadius.sm,
+          border: Border.all(color: AppColors.error, width: 1),
+        ),
+        child: Text(texto,
+            style: AppText.caption.copyWith(color: AppColors.error)),
+      );
 
   Widget _customArea(BuildContext context, Answer a, {required bool insert}) {
     return Padding(

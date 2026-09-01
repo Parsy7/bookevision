@@ -34,7 +34,7 @@ class ReviewController {
                 (SELECT COUNT(*) FROM sugerencias s WHERE s.revision_id = r.id) AS total,
                 (SELECT COUNT(*) FROM respuestas a
                    WHERE a.revision_id = r.id
-                     AND (a.choice IN ('original','proposed')
+                     AND (a.choice IN ('original','proposed','omit')
                           OR (a.choice = 'custom' AND a.custom IS NOT NULL AND a.custom <> ''))
                 ) AS resolved,
                 (SELECT COUNT(*) FROM ediciones_manuales e WHERE e.revision_id = r.id) AS manual
@@ -193,7 +193,7 @@ class ReviewController {
         foreach ($answers as $i => $a) {
             if (!is_array($a)) continue;
             $upd->execute([
-                'choice'          => in_array($a['choice'] ?? null, ['original','proposed','custom'], true)
+                'choice'          => in_array($a['choice'] ?? null, ['original','proposed','custom','omit'], true)
                                         ? $a['choice'] : null,
                 'custom'          => $a['custom'] ?? null,
                 'insert_position' => in_array($a['insertPosition'] ?? null, ['before','between','after'], true)

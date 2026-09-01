@@ -82,7 +82,7 @@ class StateController {
             foreach ($answers as $a) {
                 if (!is_array($a) || !isset($a['orden'])) continue;
                 $upd->execute([
-                    'choice'          => in_array($a['choice'] ?? null, ['original','proposed','custom'], true)
+                    'choice'          => in_array($a['choice'] ?? null, ['original','proposed','custom','omit'], true)
                                             ? $a['choice'] : null,
                     'custom'          => $a['custom'] ?? null,
                     'insert_position' => in_array($a['insertPosition'] ?? null, ['before','between','after'], true)

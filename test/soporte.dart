@@ -30,12 +30,16 @@ final Review revisionDePrueba = Review(
   ],
 );
 
-/// API de mentira: ni red ni disco.
+/// API de mentira: ni red ni disco. Se le puede dar otra revisión para probar
+/// el motor de composición con capítulos a medida.
 class ApiFalsa extends ApiService {
+  ApiFalsa([Review? revision]) : revision = revision ?? revisionDePrueba;
+
+  final Review revision;
   int guardados = 0;
 
   @override
-  Future<Review> getRevision(String id) async => revisionDePrueba;
+  Future<Review> getRevision(String id) async => revision;
 
   @override
   Future<ReviewState> getEstado(String id) async =>

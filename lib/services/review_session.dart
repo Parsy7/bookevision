@@ -14,7 +14,7 @@ enum SaveStatus { idle, pending, saving, saved, error }
 
 /// Desglose de decisiones para el progreso y la confirmación final.
 class Counts {
-  final int total, done, pending, accepted, originals, custom, manual;
+  final int total, done, pending, accepted, originals, custom, omitted, manual;
   const Counts({
     required this.total,
     required this.done,
@@ -22,6 +22,7 @@ class Counts {
     required this.accepted,
     required this.originals,
     required this.custom,
+    required this.omitted,
     required this.manual,
   });
 }
@@ -232,6 +233,7 @@ class ReviewSession extends ChangeNotifier {
       accepted: _answers.where((a) => a.choice == Choice.proposed).length,
       originals: _answers.where((a) => a.choice == Choice.original).length,
       custom: _answers.where((a) => a.choice == Choice.custom).length,
+      omitted: _answers.where((a) => a.choice == Choice.omit).length,
       manual: _manualEdits.length,
     );
   }
@@ -240,6 +242,7 @@ class ReviewSession extends ChangeNotifier {
 
   /// Texto elegido para una sugerencia según la decisión actual.
   String _chosenText(Suggestion s, Answer a) {
+    if (a.choice == Choice.omit) return '';
     if (a.choice == Choice.original) return s.isInsert ? '' : (s.original ?? '');
     if (a.choice == Choice.proposed) return s.proposed ?? '';
     if (a.choice == Choice.custom) return a.custom;
@@ -271,6 +274,44 @@ class ReviewSession extends ChangeNotifier {
       return p < 0 ? -1 : p + s.previous!.length;
     }
     return _insertBasePosition(s);
+  }
+
+  /// Quitar un fragmento que ocupaba un párrafo entero deja el separador de
+  /// antes **y** el de después, o sea una línea en blanco de más. Cada
+  /// eliminación se lleva uno de los dos.
+  ///
+  /// No se toca si justo en ese punto hay otra operación (una inserción
+  /// colocada entre esos dos párrafos): ahí el hueco no sobra, y comérselo
+  /// pisaría el texto insertado.
+  /// Separador que queda de más al quitar el fragmento `[start, end)`, o
+  /// cadena vacía si no sobra ninguno.
+  String _separadorSobrante(String original, int start, int end) {
+    for (final sep in const [_separadorParrafo, ' ']) {
+      final antes = start == 0 || original.startsWith(sep, start - sep.length);
+      final despues = original.startsWith(sep, end);
+      if (antes && despues) return sep;
+    }
+    return '';
+  }
+
+  void _absorberHuecoDoble(String original, List<_Op> ops) {
+    for (var i = 0; i < ops.length; i++) {
+      final op = ops[i];
+      if (op.kind != 'replace' || op.text.isNotEmpty) continue;
+
+      // Un párrafo entero se lleva el separador de línea en blanco; una frase
+      // dentro de un párrafo se lleva el espacio que la separaba de la
+      // siguiente, para no dejar un doble espacio en medio de la prosa.
+      final sobra = _separadorSobrante(original, op.start, op.end);
+      if (sobra.isEmpty) continue;
+
+      final hasta = op.end + sobra.length;
+      final ocupado = ops.any((o) =>
+          !identical(o, op) && o.start > op.end && o.start <= hasta);
+      if (ocupado) continue;
+
+      ops[i] = _Op(op.kind, op.start, hasta, op.text, op.priority);
+    }
   }
 
   /// Compone el texto actual del capítulo con todas las decisiones aplicadas.
@@ -308,6 +349,8 @@ class ReviewSession extends ChangeNotifier {
       ops.add(_Op('manual', e.start, e.end, e.value, 30));
     });
 
+    _absorberHuecoDoble(original, ops);
+
     // De final a principio; a igual posición, mayor prioridad primero.
     ops.sort((a, b) {
       if (a.start != b.start) return b.start - a.start;
@@ -333,6 +376,9 @@ class ReviewSession extends ChangeNotifier {
     super.dispose();
   }
 }
+
+/// Separador de párrafo del capítulo (el JSON usa línea en blanco).
+const String _separadorParrafo = '\n\n';
 
 class _Op {
   final String kind; // 'replace' | 'insert' | 'manual'

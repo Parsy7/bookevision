@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+import 'package:bookevision/models/answer.dart';
 import 'package:bookevision/services/review_session.dart';
 import 'package:bookevision/theme/app_theme.dart';
 import 'package:bookevision/widgets/suggestion_card.dart';
@@ -96,6 +97,27 @@ void main() {
     expect(valor.selection.isValid, isTrue,
         reason: 'una selección inválida hace que el cursor salte solo');
     expect(valor.selection.baseOffset, valor.text.length);
+
+    await tester.pump(const Duration(seconds: 2));
+    sesion.dispose();
+  });
+
+  testWidgets('"Eliminar el original" deja la tarjeta resuelta y avisa',
+      (tester) async {
+    final sesion = ReviewSession(api: ApiFalsa());
+    await sesion.load('x');
+
+    await tester.pumpWidget(_conTarjeta(sesion));
+
+    expect(sesion.answerAt(0).isResolved, isFalse);
+
+    await tester.tap(find.text('Eliminar el original'));
+    await tester.pump();
+
+    expect(sesion.answerAt(0).choice, Choice.omit);
+    expect(sesion.answerAt(0).isResolved, isTrue);
+    expect(sesion.counts().omitted, 1);
+    expect(find.textContaining('desaparecerá del capítulo'), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 2));
     sesion.dispose();

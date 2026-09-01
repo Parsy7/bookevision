@@ -1,12 +1,17 @@
 /// Valores posibles de `choice`. En sustituciones: `original` = mantener,
-/// `proposed` = aceptar, `custom` = versión propia. En inserciones:
-/// `original` = no añadir nada, `proposed` = añadir la propuesta, `custom` =
-/// añadir texto propio.
+/// `proposed` = aceptar, `custom` = versión propia, `omit` = quitar el
+/// fragmento. En inserciones: `original` = no añadir nada, `proposed` = añadir
+/// la propuesta, `custom` = añadir texto propio.
 class Choice {
   Choice._();
   static const String original = 'original';
   static const String proposed = 'proposed';
   static const String custom = 'custom';
+
+  /// Solo en sustituciones: dejar la tarjeta en blanco y **quitar** del
+  /// capítulo el fragmento original, en lugar de sustituirlo por algo. En
+  /// inserciones no hace falta: allí `original` ya significa no añadir nada.
+  static const String omit = 'omit';
 }
 
 /// Posición elegida para una inserción.
@@ -32,11 +37,12 @@ class Answer {
     this.insertPosition,
   });
 
-  /// Réplica de `isResolved` del HTML: aceptada, original, o personalizada no
-  /// vacía.
+  /// Réplica de `isResolved` del HTML, más `omit`: aceptada, original,
+  /// eliminada, o personalizada no vacía.
   bool get isResolved =>
       choice == Choice.original ||
       choice == Choice.proposed ||
+      choice == Choice.omit ||
       (choice == Choice.custom && custom.trim().isNotEmpty);
 
   factory Answer.fromJson(Map<String, dynamic> j) => Answer(

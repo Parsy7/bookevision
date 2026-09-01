@@ -53,7 +53,8 @@ CREATE TABLE respuestas (
   revision_id     VARCHAR(191) NOT NULL,
   -- Apunta a sugerencias.orden (misma revisión). Una respuesta por sugerencia.
   orden           INT NOT NULL,
-  choice          ENUM('original','proposed','custom') NULL,
+  -- 'omit' = no responder y quitar del capítulo el fragmento original.
+  choice          ENUM('original','proposed','custom','omit') NULL,
   custom          LONGTEXT NULL,
   -- Solo tiene sentido en inserciones; por defecto 'between'.
   insert_position ENUM('before','between','after') NULL,
