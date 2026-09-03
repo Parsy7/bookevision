@@ -163,9 +163,11 @@ class _ReviewTile extends StatelessWidget {
             runSpacing: AppSpacing.gapSm,
             children: [
               AppPill(
-                label: review.isComplete
-                    ? 'Completada'
-                    : '${review.resolved}/${review.total} resueltas',
+                label: review.isDocument
+                    ? 'Capítulo suelto'
+                    : review.isComplete
+                        ? 'Completada'
+                        : '${review.resolved}/${review.total} resueltas',
                 color: review.isComplete
                     ? AppColors.success
                     : AppColors.pillBg,

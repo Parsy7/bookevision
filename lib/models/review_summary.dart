@@ -24,6 +24,10 @@ class ReviewSummary {
   int get pending => total - resolved;
   bool get isComplete => total > 0 && resolved >= total;
 
+  /// Capítulo cargado suelto (un `.md`): sin sugerencias que resolver, solo
+  /// texto para leer y editar a mano.
+  bool get isDocument => total == 0;
+
   factory ReviewSummary.fromJson(Map<String, dynamic> j) => ReviewSummary(
         id: j['id'] as String,
         format: (j['format'] as String?) ?? 'la-jaula-rota-review-v4',

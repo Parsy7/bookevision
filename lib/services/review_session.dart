@@ -74,8 +74,9 @@ class ReviewSession extends ChangeNotifier {
 
   bool isResolved(int orden) => _answers[orden].isResolved;
 
-  bool get allResolved =>
-      _answers.isNotEmpty && _answers.every((a) => a.isResolved);
+  /// Un capítulo sin sugerencias (un `.md` cargado a pelo) no tiene nada
+  /// pendiente: está resuelto de partida.
+  bool get allResolved => _answers.every((a) => a.isResolved);
 
   // ---------- Carga ----------
 

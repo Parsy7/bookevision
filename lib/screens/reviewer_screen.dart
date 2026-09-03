@@ -230,7 +230,8 @@ class _ReviewerViewState extends State<_ReviewerView> {
         final pieces = _pieces!;
         return Column(
           children: [
-            ProgressHeader(done: c.done, total: c.total),
+            // Un capítulo suelto no tiene nada que contar: fuera la franja.
+            if (c.total > 0) ProgressHeader(done: c.done, total: c.total),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(AppSpacing.page),
@@ -341,11 +342,12 @@ class _ReviewerViewState extends State<_ReviewerView> {
         ),
         child: Row(
           children: [
-            IconButton(
-              icon: const Icon(Icons.keyboard_arrow_up, size: AppIcon.md),
-              tooltip: 'Pendiente anterior',
-              onPressed: () => _prevPending(session),
-            ),
+            if (c.total > 0)
+              IconButton(
+                icon: const Icon(Icons.keyboard_arrow_up, size: AppIcon.md),
+                tooltip: 'Pendiente anterior',
+                onPressed: () => _prevPending(session),
+              ),
             Expanded(
               child: AppButton(
                 label: allResolved
@@ -354,11 +356,12 @@ class _ReviewerViewState extends State<_ReviewerView> {
                 onPressed: allResolved ? () => _openConfirm(session) : null,
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.keyboard_arrow_down, size: AppIcon.md),
-              tooltip: 'Pendiente siguiente',
-              onPressed: () => _nextPending(session),
-            ),
+            if (c.total > 0)
+              IconButton(
+                icon: const Icon(Icons.keyboard_arrow_down, size: AppIcon.md),
+                tooltip: 'Pendiente siguiente',
+                onPressed: () => _nextPending(session),
+              ),
           ],
         ),
       ),

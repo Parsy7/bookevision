@@ -35,6 +35,7 @@ class ConfirmScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.all(AppSpacing.page),
               children: [
+                if (counts.total > 0) ...[
                 _summaryItem(
                     _cuenta(counts.accepted, 'sugerencia aceptada',
                         'sugerencias aceptadas'),
@@ -55,6 +56,7 @@ class ConfirmScreen extends StatelessWidget {
                         'fragmentos eliminados'),
                     'Esos fragmentos no aparecerán en el capítulo.'),
                 const SizedBox(height: AppSpacing.gapSm),
+                ],
                 _summaryItem(
                     _cuenta(counts.manual, 'bloque editado directamente',
                         'bloques editados directamente'),
