@@ -9,8 +9,17 @@
 header('Content-Type: text/plain; charset=utf-8');
 require_once __DIR__ . '/../db.php';
 
-if (!defined('SCRIPT_SECRET') || SCRIPT_SECRET === '' ||
-    ($_GET['secret'] ?? '') !== SCRIPT_SECRET) {
+// Se distinguen los dos motivos: "no configurado" y "no coincide" daban el
+// mismo mensaje, y el primero despista mucho (por más vueltas que le des a la
+// URL no hay secreto que valga hasta que rellenes db.php).
+if (!defined('SCRIPT_SECRET') || SCRIPT_SECRET === '') {
+    http_response_code(403);
+    echo "SCRIPT_SECRET está vacío en api/db.php. Ponle una cadena larga al "
+       . "azar y vuelve a entrar con ?secret=ESE_VALOR.\n";
+    exit;
+}
+
+if (($_GET['secret'] ?? '') !== SCRIPT_SECRET) {
     http_response_code(403);
     echo "Prohibido: secreto no válido.\n";
     exit;
