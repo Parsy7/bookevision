@@ -110,7 +110,7 @@ class _ReviewListScreenState extends State<ReviewListScreen> {
               return _EmptyState(onImport: _openImport);
             }
             return ListView.separated(
-              padding: const EdgeInsets.all(AppSpacing.page),
+              padding: AppSpacing.pageScroll(context),
               itemCount: items.length,
               separatorBuilder: (_, __) =>
                   const SizedBox(height: AppSpacing.gapMd),
@@ -198,7 +198,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.page),
+      padding: AppSpacing.pageScroll(context),
       children: [
         const SizedBox(height: 80),
         Icon(Icons.menu_book_outlined,
@@ -231,7 +231,7 @@ class _ErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.page),
+      padding: AppSpacing.pageScroll(context),
       children: [
         const SizedBox(height: 80),
         Icon(Icons.cloud_off_outlined,

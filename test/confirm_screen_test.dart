@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:bookevision/screens/confirm_screen.dart';
+import 'package:bookevision/widgets/app_button.dart';
 import 'package:bookevision/services/review_session.dart';
 import 'package:bookevision/theme/app_theme.dart';
 
@@ -61,5 +62,22 @@ void main() {
     expect(find.text('1 fragmento eliminado'), findsOneWidget,
         reason: 'en singular cuando es uno');
     expect(find.text('2 bloques editados directamente'), findsOneWidget);
+  });
+
+  testWidgets('la barra de navegación de Android no tapa los botones',
+      (tester) async {
+    addTearDown(tester.view.reset);
+    const navegacion = 48.0; // barra de 3 botones de Android
+    final fisicos = navegacion * tester.view.devicePixelRatio;
+    tester.view.viewPadding = FakeViewPadding(bottom: fisicos);
+    tester.view.padding = FakeViewPadding(bottom: fisicos);
+
+    await abrir(tester);
+
+    for (final rotulo in ['Guardar .md', 'Copiar todo']) {
+      final caja = tester.getRect(find.widgetWithText(AppButton, rotulo));
+      expect(caja.bottom, lessThanOrEqualTo(600 - navegacion),
+          reason: '$rotulo se mete debajo de la barra de Android');
+    }
   });
 }

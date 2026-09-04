@@ -127,7 +127,7 @@ class _ImportScreenState extends State<ImportScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Importar revisión')),
       body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.page),
+        padding: AppSpacing.pageScroll(context),
         children: [
           Text(
             'Carga un capítulo en .md para leerlo y editarlo a mano, o importa '

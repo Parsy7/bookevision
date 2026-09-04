@@ -1,5 +1,6 @@
 import 'package:bookevision/models/review.dart';
 import 'package:bookevision/models/review_state.dart';
+import 'package:bookevision/models/review_summary.dart';
 import 'package:bookevision/models/suggestion.dart';
 import 'package:bookevision/services/api_service.dart';
 
@@ -50,4 +51,20 @@ class ApiFalsa extends ApiService {
 
   @override
   Future<void> resetEstado(String id) async {}
+}
+
+/// Lista larga, para comprobar qué pasa con el último elemento del scroll.
+class ApiFalsaConVarias extends ApiFalsa {
+  @override
+  Future<List<ReviewSummary>> getRevisiones() async => [
+        for (var i = 1; i <= 8; i++)
+          ReviewSummary(
+            id: 'c$i',
+            format: 'la-jaula-rota-review-v4',
+            title: 'Capítulo $i',
+            total: 3,
+            resolved: i,
+            manual: 0,
+          ),
+      ];
 }
