@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/manual_edit.dart';
@@ -123,6 +124,17 @@ class _ProseBlockState extends State<ProseBlock> {
   int _caretOffsetAt(Offset globalPosition, String text) {
     final box = _textKey.currentContext?.findRenderObject();
     if (box is! RenderBox || !box.hasSize) return 0;
+
+    // El `Text` ya está medido: preguntarle a él es gratis. Rehacer el layout
+    // con un `TextPainter` costaría cientos de milisegundos en un bloque con
+    // el capítulo entero, y se notarían como un tirón al entrar a editar.
+    if (box is RenderParagraph) {
+      return _clampOffset(
+        box.getPositionForOffset(box.globalToLocal(globalPosition)).offset,
+        text.length,
+      );
+    }
+
     final style = _style;
     final painter = TextPainter(
       text: TextSpan(text: text, style: style),

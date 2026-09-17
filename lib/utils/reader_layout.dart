@@ -35,37 +35,21 @@ class CardPiece extends ReaderPiece {
   const CardPiece(this.index);
 }
 
-/// Capítulo suelto (un `.md` importado, sin sugerencias): un bloque editable
-/// **por párrafo**.
+/// Capítulo suelto (un `.md` importado, sin sugerencias): **un solo bloque**
+/// con todo el capítulo dentro.
 ///
-/// En un solo bloque, la pulsación larga abriría un campo con el capítulo
-/// entero dentro: pesadísimo al teclear, y guardar sería una única edición
-/// manual de todo el texto en vez de la del párrafo que has tocado.
+/// Se probó a partirlo por párrafos, que abarata el campo de edición, pero
+/// deja cada párrafo aislado en su propio campo y entonces no hay forma de
+/// quitar varias frases o párrafos de una vez: hay que entrar y salir uno por
+/// uno. En un capítulo suelto se edita libremente, así que manda poder
+/// seleccionar de punta a punta.
 ///
-/// Los separadores se quedan fuera de los bloques, así que las ediciones
-/// manuales (que van por offsets del capítulo original) no los reescriben.
+/// El precio es que el campo de edición carga el capítulo entero: teclear
+/// carácter a carácter va notablemente más lento que en un bloque pequeño
+/// (borrar una selección, que es una sola operación, no).
 List<ReaderPiece> _soloProsa(String chapter) {
-  // Lo normal es separar por línea en blanco. Si el archivo no tiene ninguna
-  // (viene con saltos duros línea a línea), se parte por salto simple: peor
-  // que nada es dejar el capítulo entero en un solo bloque.
-  final porParrafo = _partir(chapter, RegExp(r'\n{2,}'));
-  if (porParrafo.length > 1 || !chapter.contains('\n')) return porParrafo;
-  return _partir(chapter, RegExp(r'\n'));
-}
-
-List<ReaderPiece> _partir(String chapter, RegExp separador) {
-  final pieces = <ReaderPiece>[];
-  var cursor = 0;
-
-  for (final m in separador.allMatches(chapter)) {
-    final text = chapter.substring(cursor, m.start);
-    if (text.isNotEmpty) pieces.add(ProsePiece(text, cursor, m.start));
-    cursor = m.end;
-  }
-
-  final tail = chapter.substring(cursor);
-  if (tail.isNotEmpty) pieces.add(ProsePiece(tail, cursor, chapter.length));
-  return pieces;
+  if (chapter.isEmpty) return const [];
+  return [ProsePiece(chapter, 0, chapter.length)];
 }
 
 class _Located {

@@ -21,6 +21,10 @@ const _md = '# La promesa\n\n'
     'Párrafo dos del capítulo.\n\n'
     'Párrafo tres del capítulo.';
 
+/// El mismo capítulo con los dos últimos párrafos quitados de una vez: lo que
+/// no se podía hacer cuando cada párrafo era un bloque suelto.
+const _recortado = '# La promesa\n\nPárrafo uno del capítulo.';
+
 Review _documento([String texto = _md]) => Review(
       id: 'doc',
       format: 'la-jaula-rota-review-v4',
@@ -41,7 +45,6 @@ void main() {
     });
 
     test('los saltos de Windows se normalizan', () {
-      // Si se quedan los \r\n, el capítulo no se parte en párrafos.
       final r = ImportMd.revision('x.md', 'Uno.\r\n\r\nDos.\r\n');
       expect(r['chapter'], 'Uno.\n\nDos.');
     });
@@ -62,42 +65,27 @@ void main() {
   });
 
   group('lector de un capítulo suelto', () {
-    test('un bloque editable por párrafo, con sus offsets', () {
+    test('un solo bloque con el capítulo entero', () {
       final piezas = buildReaderPieces(_documento());
 
-      expect(piezas.length, 4);
-      expect(piezas.every((p) => p is ProsePiece), isTrue,
-          reason: 'sin sugerencias no hay tarjetas ni marcadores');
-
-      for (final p in piezas.cast<ProsePiece>()) {
-        expect(_md.substring(p.start, p.end), p.text,
-            reason: 'los offsets tienen que apuntar al texto de verdad');
-      }
-      expect((piezas[2] as ProsePiece).text, 'Párrafo dos del capítulo.');
+      expect(piezas.length, 1,
+          reason: 'de punta a punta: hay que poder quitar varios párrafos de '
+              'una vez, no uno por uno');
+      final p = piezas.single as ProsePiece;
+      expect(p.text, _md);
+      expect(p.start, 0);
+      expect(p.end, _md.length);
     });
 
-    test('un .md con saltos duros también se parte', () {
-      final piezas = buildReaderPieces(
-          _documento('Verso uno.\nVerso dos.\nVerso tres.'));
-
-      expect(piezas.length, 3,
-          reason: 'sin líneas en blanco, se parte por salto simple');
-    });
-
-    test('editar un párrafo no toca a los demás', () async {
+    test('la edición se lleva por delante párrafos enteros', () async {
       final s = ReviewSession(api: ApiFalsa(_documento()));
       await s.load('doc');
 
-      final p = (buildReaderPieces(s.review!)[2]) as ProsePiece;
-      s.setManualEdit(p.start, p.end, p.text, 'Párrafo dos CORREGIDO.');
+      final p = buildReaderPieces(s.review!).single as ProsePiece;
+      s.setManualEdit(p.start, p.end, p.text, _recortado);
 
-      expect(
-        s.currentText(),
-        '# La promesa\n\n'
-        'Párrafo uno del capítulo.\n\n'
-        'Párrafo dos CORREGIDO.\n\n'
-        'Párrafo tres del capítulo.',
-      );
+      expect(s.currentText(), _recortado,
+          reason: 'separadores incluidos, sin huecos sueltos');
       s.dispose();
     });
 
@@ -138,36 +126,59 @@ void main() {
 
       expect(find.byType(SuggestionCard), findsNothing);
       expect(find.byType(ProgressHeader), findsNothing);
-      expect(find.byType(ProseBlock), findsNWidgets(4));
+      expect(find.byType(ProseBlock), findsOneWidget);
       expect(find.byTooltip('Pendiente siguiente'), findsNothing);
       expect(find.text('Revisar y confirmar'), findsOneWidget,
           reason: 'no hay nada que resolver: se puede confirmar ya');
     });
 
-    testWidgets('la pulsación larga edita solo ese párrafo', (tester) async {
+    testWidgets('la pulsación larga deja editable el capítulo entero',
+        (tester) async {
       await abrir(tester);
 
-      final segundo = find.byType(ProseBlock).at(2);
-      final caja = tester.getRect(segundo);
+      final caja = tester.getRect(find.byType(ProseBlock));
       await tester.longPressAt(Offset(caja.left + 30, caja.top + 10));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 
-      expect(find.byType(EditableText), findsOneWidget);
-      expect(tester.widget<EditableText>(find.byType(EditableText)).controller.text,
-          'Párrafo dos del capítulo.',
-          reason: 'el campo lleva el párrafo, no el capítulo entero');
+      final campo = tester.widget<EditableText>(find.byType(EditableText));
+      expect(campo.controller.text, _md,
+          reason: 'el campo lleva todo el capítulo, no solo el párrafo tocado');
 
-      await tester.enterText(find.byType(EditableText), 'Párrafo dos a mano.');
+      await tester.enterText(find.byType(EditableText), _recortado);
       await tester.tap(find.text('Guardar').last);
       await tester.pump(const Duration(milliseconds: 400));
 
       final sesion = Provider.of<ReviewSession>(
-          tester.element(find.byType(ProseBlock).first),
+          tester.element(find.byType(ProseBlock)),
           listen: false);
-      expect(sesion.currentText(), contains('Párrafo dos a mano.'));
-      expect(sesion.currentText(), contains('Párrafo uno del capítulo.'));
-      expect(sesion.currentText(), contains('Párrafo tres del capítulo.'));
+      expect(sesion.currentText(), _recortado);
+
+      await tester.pump(const Duration(seconds: 2));
+    });
+
+    testWidgets('el cursor sigue cayendo donde se pulsa', (tester) async {
+      await abrir(tester);
+
+      final caja = tester.getRect(find.byType(ProseBlock));
+      // Tercera línea del bloque, no el principio.
+      final punto = Offset(caja.left + 80, caja.top + 70);
+      await tester.longPressAt(punto);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final estado =
+          tester.state<EditableTextState>(find.byType(EditableText));
+      final seleccion = estado.textEditingValue.selection;
+      expect(seleccion.baseOffset, greaterThan(0));
+      expect(seleccion.baseOffset, lessThan(_md.length),
+          reason: 'ni al principio ni al final del capítulo');
+
+      final cursor = estado.renderEditable
+          .getLocalRectForCaret(seleccion.extent);
+      final global = estado.renderEditable.localToGlobal(cursor.topLeft);
+      expect(punto.dy, greaterThanOrEqualTo(global.dy - 1));
+      expect(punto.dy, lessThanOrEqualTo(global.dy + cursor.height + 1));
 
       await tester.pump(const Duration(seconds: 2));
     });
