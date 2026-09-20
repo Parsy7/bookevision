@@ -5,6 +5,7 @@ import '../models/manual_edit.dart';
 import '../models/review.dart';
 import '../models/review_state.dart';
 import '../models/suggestion.dart';
+import '../utils/reader_layout.dart';
 import 'api_service.dart';
 
 enum LoadStatus { idle, loading, ready, error }
@@ -100,11 +101,68 @@ class ReviewSession extends ChangeNotifier {
       _review = review;
       _saveStatus = SaveStatus.saved;
       _loadStatus = LoadStatus.ready;
+      if (_reencajarEdiciones()) _touch();
     } catch (e) {
       _lastError = e;
       _loadStatus = LoadStatus.error;
     }
     notifyListeners();
+  }
+
+  /// Recoloca las ediciones manuales que ya no caen en ningún bloque.
+  ///
+  /// Se guardan por bloque (`b_inicio_fin`). Si los bloques cambian de tamaño
+  /// entre versiones de la app —como pasó con los capítulos sueltos, que antes
+  /// se partían por párrafos y ahora son un bloque único— las guardadas dejan
+  /// de verse en el lector, que muestra el original, pero seguían aplicándose
+  /// al exportar. Y en cuanto el bloque nuevo tiene su propia edición, las dos
+  /// se solapan y la composición se sale de rango.
+  ///
+  /// En vez de tirarlas, se doblan dentro del bloque que las contiene, para no
+  /// perder el trabajo. Devuelve si ha cambiado algo.
+  bool _reencajarEdiciones() {
+    final r = _review;
+    if (r == null || _manualEdits.isEmpty) return false;
+
+    final bloques = <ProsePiece>[
+      for (final p in buildReaderPieces(r))
+        if (p is ProsePiece) p,
+    ];
+    final validos = {for (final b in bloques) b.blockId};
+    final huerfanas = _manualEdits.values
+        .where((e) => !validos.contains(e.blockId))
+        .toList();
+    if (huerfanas.isEmpty) return false;
+
+    for (final e in huerfanas) {
+      _manualEdits.remove(e.blockId);
+    }
+
+    for (final b in bloques) {
+      // Si el bloque ya tiene su propia edición, es la que ves: manda esa.
+      if (_manualEdits.containsKey(b.blockId)) continue;
+
+      final dentro = huerfanas
+          .where((e) => e.start >= b.start && e.end <= b.end)
+          .toList()
+        ..sort((x, y) => y.start - x.start); // de final a principio
+      if (dentro.isEmpty) continue;
+
+      var texto = b.text;
+      for (final e in dentro) {
+        final inicio = _enRango(e.start - b.start, texto.length);
+        final fin = _enRango(e.end - b.start, texto.length);
+        if (fin < inicio) continue;
+        texto = texto.substring(0, inicio) + e.value + texto.substring(fin);
+      }
+      _manualEdits[b.blockId] = ManualEdit(
+        start: b.start,
+        end: b.end,
+        original: b.text,
+        value: texto,
+      );
+    }
+    return true;
   }
 
   // ---------- Mutadores (todos disparan autosave) ----------
@@ -360,16 +418,26 @@ class ReviewSession extends ChangeNotifier {
 
     var text = original;
     for (final op in ops) {
+      // Las operaciones van en coordenadas del capítulo original y se aplican
+      // de final a principio, así que cada rango sigue siendo válido... salvo
+      // que dos se solapen, y entonces la segunda corta fuera del texto ya
+      // acortado. Recortar aquí es de último recurso: componer algo raro es
+      // malo, pero reventar deja la pantalla en gris y no se exporta nada.
+      final inicio = _enRango(op.start, text.length);
+      final fin = _enRango(op.end < inicio ? inicio : op.end, text.length);
       if (op.kind == 'insert') {
-        text = text.substring(0, op.start) +
+        text = text.substring(0, inicio) +
             '\n\n${op.text}\n\n' +
-            text.substring(op.start);
+            text.substring(inicio);
       } else {
-        text = text.substring(0, op.start) + op.text + text.substring(op.end);
+        text = text.substring(0, inicio) + op.text + text.substring(fin);
       }
     }
     return text;
   }
+
+  static int _enRango(int valor, int maximo) =>
+      valor < 0 ? 0 : (valor > maximo ? maximo : valor);
 
   @override
   void dispose() {
