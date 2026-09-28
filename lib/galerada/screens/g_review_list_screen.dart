@@ -196,7 +196,16 @@ class _Hero extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const GMono('BookeVision'),
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).maybePop(),
+                    child: const GMono.muted('← Volver'),
+                  ),
+                  const SizedBox(width: GSpacing.gap),
+                  const GMono('BookeVision'),
+                ],
+              ),
               GMono.muted('Nº ${numero.toString().padLeft(2, '0')} · $fecha'),
             ],
           ),
