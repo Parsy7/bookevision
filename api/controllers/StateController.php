@@ -10,7 +10,7 @@
  *   DELETE /revisiones/{id}/estado   -> borra decisiones y ediciones (reset)
  */
 class StateController {
-    public function handle(string $method, ?string $id): void {
+    public function handle(string $method, ?string $id, int $userId): void {
         $pdo = get_pdo();
 
         if (!$id) {
@@ -18,7 +18,7 @@ class StateController {
             echo json_encode(['error' => 'Falta id de revisión']);
             return;
         }
-        if (!$this->reviewExists($pdo, $id)) {
+        if (!$this->reviewExists($pdo, $id, $userId)) {
             http_response_code(404);
             echo json_encode(['error' => 'Revisión no encontrada']);
             return;
@@ -154,9 +154,13 @@ class StateController {
         echo json_encode(['ok' => true]);
     }
 
-    private function reviewExists(PDO $pdo, string $id): bool {
-        $stmt = $pdo->prepare('SELECT 1 FROM revisiones WHERE id = :id');
-        $stmt->execute(['id' => $id]);
+    private function reviewExists(PDO $pdo, string $id, int $userId): bool {
+        $stmt = $pdo->prepare(
+            'SELECT 1 FROM revisiones r
+               JOIN libros b ON b.id = r.libro_id
+              WHERE r.id = :id AND b.user_id = :user_id'
+        );
+        $stmt->execute(['id' => $id, 'user_id' => $userId]);
         return (bool)$stmt->fetch();
     }
 }

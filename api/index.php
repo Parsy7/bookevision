@@ -10,10 +10,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/AuthHelper.php';
+require_once __DIR__ . '/controllers/AuthController.php';
+require_once __DIR__ . '/controllers/LibroController.php';
 require_once __DIR__ . '/controllers/ReviewController.php';
 require_once __DIR__ . '/controllers/StateController.php';
 
 // Router simple basado en PATH_INFO:
+//   /api/index.php/auth/{register|login|logout|me}
+//   /api/index.php/libros
+//   /api/index.php/libros/{id}
 //   /api/index.php/revisiones
 //   /api/index.php/revisiones/{id}
 //   /api/index.php/revisiones/{id}/estado
@@ -24,14 +30,22 @@ $id       = isset($segments[1]) ? urldecode($segments[1]) : null;
 $action   = $segments[2] ?? null;
 $method   = $_SERVER['REQUEST_METHOD'];
 
-// Sin login: no hay require_auth(). Esta API es de un solo usuario.
+// Toda la API exige sesión salvo /auth/* (registro y login).
+$userId = $resource === 'auth' ? null : require_auth();
+
 try {
     switch ($resource) {
+        case 'auth':
+            (new AuthController())->handle($method, $id);
+            break;
+        case 'libros':
+            (new LibroController())->handle($method, $id, $userId);
+            break;
         case 'revisiones':
             if ($action === 'estado') {
-                (new StateController())->handle($method, $id);
+                (new StateController())->handle($method, $id, $userId);
             } else {
-                (new ReviewController())->handle($method, $id);
+                (new ReviewController())->handle($method, $id, $userId);
             }
             break;
         default:

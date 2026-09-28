@@ -6,19 +6,19 @@
  * ('la-jaula-rota-state-v2'), replicando loadReview/loadState del HTML.
  */
 class ReviewController {
-    public function handle(string $method, ?string $id): void {
+    public function handle(string $method, ?string $id, int $userId): void {
         $pdo = get_pdo();
 
         switch ($method) {
             case 'GET':
-                if ($id) { $this->getOne($pdo, $id); }
-                else     { $this->getList($pdo); }
+                if ($id) { $this->getOne($pdo, $id, $userId); }
+                else     { $this->getList($pdo, $userId); }
                 break;
             case 'POST':
-                $this->import($pdo);
+                $this->import($pdo, $userId);
                 break;
             case 'DELETE':
-                $this->delete($pdo, $id);
+                $this->delete($pdo, $id, $userId);
                 break;
             default:
                 http_response_code(405);
@@ -26,11 +26,30 @@ class ReviewController {
         }
     }
 
-    /** Lista para la pantalla inicial: metadatos + progreso de cada revisión. */
-    private function getList(PDO $pdo): void {
-        $stmt = $pdo->query(
+    /** Comprueba que el libro existe y es del usuario. */
+    private function libroDelUsuario(PDO $pdo, string $libroId, int $userId): bool {
+        $stmt = $pdo->prepare('SELECT 1 FROM libros WHERE id = :id AND user_id = :user_id');
+        $stmt->execute(['id' => $libroId, 'user_id' => $userId]);
+        return (bool)$stmt->fetch();
+    }
+
+    /** Lista para la pantalla inicial: metadatos + progreso de cada revisión de un libro. */
+    private function getList(PDO $pdo, int $userId): void {
+        $libroId = $_GET['libro_id'] ?? null;
+        if (!$libroId || !ctype_digit((string)$libroId)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Falta libro_id']);
+            return;
+        }
+        if (!$this->libroDelUsuario($pdo, (string)$libroId, $userId)) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Libro no encontrado']);
+            return;
+        }
+
+        $stmt = $pdo->prepare(
             "SELECT
-                r.id, r.format, r.title, r.source, r.created_at, r.updated_at,
+                r.id, r.libro_id, r.format, r.title, r.source, r.created_at, r.updated_at,
                 (SELECT COUNT(*) FROM sugerencias s WHERE s.revision_id = r.id) AS total,
                 (SELECT COUNT(*) FROM respuestas a
                    WHERE a.revision_id = r.id
@@ -39,8 +58,10 @@ class ReviewController {
                 ) AS resolved,
                 (SELECT COUNT(*) FROM ediciones_manuales e WHERE e.revision_id = r.id) AS manual
              FROM revisiones r
+             WHERE r.libro_id = :libro_id
              ORDER BY r.updated_at DESC"
         );
+        $stmt->execute(['libro_id' => $libroId]);
         $rows = $stmt->fetchAll();
         foreach ($rows as &$row) {
             $row['total']    = (int)$row['total'];
@@ -51,9 +72,13 @@ class ReviewController {
     }
 
     /** Revisión completa: metadatos + capítulo + sugerencias ordenadas. */
-    private function getOne(PDO $pdo, string $id): void {
-        $stmt = $pdo->prepare('SELECT * FROM revisiones WHERE id = :id');
-        $stmt->execute(['id' => $id]);
+    private function getOne(PDO $pdo, string $id, int $userId): void {
+        $stmt = $pdo->prepare(
+            'SELECT r.* FROM revisiones r
+               JOIN libros b ON b.id = r.libro_id
+              WHERE r.id = :id AND b.user_id = :user_id'
+        );
+        $stmt->execute(['id' => $id, 'user_id' => $userId]);
         $review = $stmt->fetch();
         if (!$review) {
             http_response_code(404);
@@ -78,8 +103,20 @@ class ReviewController {
      *   - un estado 'la-jaula-rota-state-v2' (review + answers + manualEdits).
      * Si el id ya existe se responde 409 (bórrala antes de reimportar).
      */
-    private function import(PDO $pdo): void {
+    private function import(PDO $pdo, int $userId): void {
         $body = json_body();
+
+        $libroId = $body['libro_id'] ?? null;
+        if (!$libroId || !ctype_digit((string)$libroId)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Falta libro_id']);
+            return;
+        }
+        if (!$this->libroDelUsuario($pdo, (string)$libroId, $userId)) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Libro no encontrado']);
+            return;
+        }
 
         $isState = ($body['format'] ?? null) === 'la-jaula-rota-state-v2'
                    && isset($body['review']);
@@ -118,10 +155,11 @@ class ReviewController {
         $pdo->beginTransaction();
         try {
             $pdo->prepare(
-                'INSERT INTO revisiones (id, format, title, source, chapter)
-                 VALUES (:id, :format, :title, :source, :chapter)'
+                'INSERT INTO revisiones (id, libro_id, format, title, source, chapter)
+                 VALUES (:id, :libro_id, :format, :title, :source, :chapter)'
             )->execute([
                 'id'      => $id,
+                'libro_id' => $libroId,
                 'format'  => $review['format'] ?? 'la-jaula-rota-review-v4',
                 'title'   => $review['title'] ?? 'Capítulo',
                 'source'  => $review['source'] ?? null,
@@ -179,7 +217,7 @@ class ReviewController {
             throw $e;
         }
 
-        $this->getOne($pdo, $id);
+        $this->getOne($pdo, $id, $userId);
     }
 
     /** Vuelca answers[] y manualEdits{} de un estado 'state-v2' recién importado. */
@@ -222,15 +260,19 @@ class ReviewController {
         }
     }
 
-    private function delete(PDO $pdo, ?string $id): void {
+    private function delete(PDO $pdo, ?string $id, int $userId): void {
         if (!$id) {
             http_response_code(400);
             echo json_encode(['error' => 'Falta id']);
             return;
         }
         // respuestas, sugerencias y ediciones caen en cascada por FK.
-        $stmt = $pdo->prepare('DELETE FROM revisiones WHERE id = :id');
-        $stmt->execute(['id' => $id]);
+        $stmt = $pdo->prepare(
+            'DELETE r FROM revisiones r
+               JOIN libros b ON b.id = r.libro_id
+              WHERE r.id = :id AND b.user_id = :user_id'
+        );
+        $stmt->execute(['id' => $id, 'user_id' => $userId]);
         if ($stmt->rowCount() === 0) {
             http_response_code(404);
             echo json_encode(['error' => 'Revisión no encontrada']);

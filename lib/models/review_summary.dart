@@ -2,6 +2,7 @@
 /// `GET /revisiones`.
 class ReviewSummary {
   final String id;
+  final int? libroId;
   final String format;
   final String title;
   final String? source;
@@ -12,6 +13,7 @@ class ReviewSummary {
 
   const ReviewSummary({
     required this.id,
+    this.libroId,
     required this.format,
     required this.title,
     this.source,
@@ -30,6 +32,7 @@ class ReviewSummary {
 
   factory ReviewSummary.fromJson(Map<String, dynamic> j) => ReviewSummary(
         id: j['id'] as String,
+        libroId: (j['libro_id'] as num?)?.toInt(),
         format: (j['format'] as String?) ?? 'la-jaula-rota-review-v4',
         title: (j['title'] as String?) ?? 'Capítulo',
         source: j['source'] as String?,

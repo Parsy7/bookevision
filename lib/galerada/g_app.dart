@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
-import 'screens/g_review_list_screen.dart';
+import 'screens/g_auth_gate.dart';
 import 'theme/g_theme.dart';
 
 /// Raíz de la piel «Galerada». Comparte `models/`, `services/` y `utils/` con
@@ -26,7 +26,7 @@ class GaleradaApp extends StatelessWidget {
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: const [Locale('es'), Locale('en')],
-        home: const GReviewListScreen(),
+        home: const GAuthGate(),
       ),
     );
   }

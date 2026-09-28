@@ -56,7 +56,7 @@ class ApiFalsa extends ApiService {
 /// Lista larga, para comprobar qué pasa con el último elemento del scroll.
 class ApiFalsaConVarias extends ApiFalsa {
   @override
-  Future<List<ReviewSummary>> getRevisiones() async => [
+  Future<List<ReviewSummary>> getRevisiones({String? libroId}) async => [
         for (var i = 1; i <= 8; i++)
           ReviewSummary(
             id: 'c$i',
@@ -72,5 +72,5 @@ class ApiFalsaConVarias extends ApiFalsa {
 /// Lista vacía, para la pantalla «Página en blanco».
 class ApiFalsaVacia extends ApiFalsa {
   @override
-  Future<List<ReviewSummary>> getRevisiones() async => const [];
+  Future<List<ReviewSummary>> getRevisiones({String? libroId}) async => const [];
 }

@@ -1,21 +1,56 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
+import '../models/libro.dart';
 import '../models/review.dart';
 import '../models/review_summary.dart';
 import '../models/review_state.dart';
+import 'auth_service.dart';
 
-/// Cliente HTTP de la API del revisor (PHP + MariaDB). Sin login: no envía
-/// cabecera de autorización.
+/// Cliente HTTP de la API del revisor (PHP + MariaDB). Adjunta el token de
+/// sesión (ver AuthService) en cada petición.
 class ApiService {
-  Map<String, String> get _headers => {'Content-Type': 'application/json'};
+  final AuthService _auth = AuthService();
+
+  Future<Map<String, String>> get _headers async {
+    final token = await _auth.readToken();
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
 
   Uri _u(String path) => Uri.parse('${AppConfig.apiBaseUrl}$path');
 
+  // ---------- Libros ----------
+
+  Future<List<Libro>> getLibros() async {
+    final res = await http.get(_u('/libros'), headers: await _headers);
+    _checkOk(res);
+    final list = jsonDecode(res.body) as List;
+    return list.map((e) => Libro.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<Libro> createLibro(String title) async {
+    final res = await http.post(
+      _u('/libros'),
+      headers: await _headers,
+      body: jsonEncode({'title': title}),
+    );
+    _checkOk(res);
+    return Libro.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  Future<void> deleteLibro(int id) async {
+    final res = await http.delete(_u('/libros/$id'), headers: await _headers);
+    _checkOk(res);
+  }
+
   // ---------- Revisiones ----------
 
-  Future<List<ReviewSummary>> getRevisiones() async {
-    final res = await http.get(_u('/revisiones'), headers: _headers);
+  Future<List<ReviewSummary>> getRevisiones({String? libroId}) async {
+    final path = libroId == null ? '/revisiones' : '/revisiones?libro_id=$libroId';
+    final res = await http.get(_u(path), headers: await _headers);
     _checkOk(res);
     final list = jsonDecode(res.body) as List;
     return list
@@ -24,7 +59,7 @@ class ApiService {
   }
 
   Future<Review> getRevision(String id) async {
-    final res = await http.get(_u('/revisiones/$id'), headers: _headers);
+    final res = await http.get(_u('/revisiones/$id'), headers: await _headers);
     _checkOk(res);
     return Review.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
   }
@@ -32,18 +67,19 @@ class ApiService {
   /// Importa una revisión desde el JSON que el usuario pega/carga (formato
   /// `la-jaula-rota-review-v4` o un estado `la-jaula-rota-state-v2`). Devuelve
   /// la revisión ya creada. Lanza si el id ya existía (409).
-  Future<Review> importRevision(Map<String, dynamic> json) async {
+  Future<Review> importRevision(Map<String, dynamic> json, {String? libroId}) async {
+    final body = libroId == null ? json : {...json, 'libro_id': libroId};
     final res = await http.post(
       _u('/revisiones'),
-      headers: _headers,
-      body: jsonEncode(json),
+      headers: await _headers,
+      body: jsonEncode(body),
     );
     _checkOk(res);
     return Review.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
   }
 
   Future<void> deleteRevision(String id) async {
-    final res = await http.delete(_u('/revisiones/$id'), headers: _headers);
+    final res = await http.delete(_u('/revisiones/$id'), headers: await _headers);
     _checkOk(res);
   }
 
@@ -51,7 +87,7 @@ class ApiService {
 
   Future<ReviewState> getEstado(String id) async {
     final res =
-        await http.get(_u('/revisiones/$id/estado'), headers: _headers);
+        await http.get(_u('/revisiones/$id/estado'), headers: await _headers);
     _checkOk(res);
     return ReviewState.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
   }
@@ -59,7 +95,7 @@ class ApiService {
   Future<void> putEstado(String id, ReviewState state) async {
     final res = await http.put(
       _u('/revisiones/$id/estado'),
-      headers: _headers,
+      headers: await _headers,
       body: jsonEncode(state.toJson()),
     );
     _checkOk(res);
@@ -68,7 +104,7 @@ class ApiService {
   /// Reset: borra decisiones y ediciones manuales en el servidor.
   Future<void> resetEstado(String id) async {
     final res =
-        await http.delete(_u('/revisiones/$id/estado'), headers: _headers);
+        await http.delete(_u('/revisiones/$id/estado'), headers: await _headers);
     _checkOk(res);
   }
 

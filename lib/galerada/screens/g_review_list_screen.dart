@@ -12,10 +12,17 @@ import '../widgets/g_dialog.dart';
 import 'g_import_screen.dart';
 import 'g_reviewer_screen.dart';
 
-/// Portada de «Galerada»: el hero del libro y una fila por capítulo, con su
-/// número, su medidor de sugerencias y su sello de estado.
+/// Portada de un libro: el hero con su título y una fila por capítulo, con
+/// su número, su medidor de sugerencias y su sello de estado.
 class GReviewListScreen extends StatefulWidget {
-  const GReviewListScreen({super.key});
+  final int libroId;
+  final String libroTitle;
+
+  const GReviewListScreen({
+    super.key,
+    required this.libroId,
+    required this.libroTitle,
+  });
 
   @override
   State<GReviewListScreen> createState() => _GReviewListScreenState();
@@ -31,7 +38,9 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
   }
 
   void _reload() {
-    _future = context.read<ApiService>().getRevisiones();
+    _future = context
+        .read<ApiService>()
+        .getRevisiones(libroId: widget.libroId.toString());
   }
 
   Future<void> _refresh() async {
@@ -41,7 +50,9 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
 
   Future<void> _openImport() async {
     final id = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const GImportScreen()),
+      MaterialPageRoute(
+        builder: (_) => GImportScreen(libroId: widget.libroId.toString()),
+      ),
     );
     if (!mounted) return;
     await _refresh();
@@ -115,6 +126,7 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
                       if (i == 0) {
                         return _Hero(
                           numero: items.length,
+                          titulo: widget.libroTitle,
                           subtitulo: '${items.length} '
                               '${items.length == 1 ? 'capítulo' : 'capítulos'} '
                               'en revisión',
@@ -154,13 +166,18 @@ class _Hero extends StatelessWidget {
   final int numero;
   final String subtitulo;
   final String titulo;
-  final String tituloEm;
+
+  /// Segunda palabra del título, en rojo — solo tiene sentido para el juego
+  /// de palabras de la pantalla vacía («Página en blanco»). `null` pinta
+  /// `titulo` entero en tinta, que es lo normal para el título real de un
+  /// libro (dato dinámico, ya no un titular fijo partido en dos colores).
+  final String? tituloEm;
 
   const _Hero({
     required this.numero,
     required this.subtitulo,
-    this.titulo = 'La jaula ',
-    this.tituloEm = 'rota',
+    required this.titulo,
+    this.tituloEm,
   });
 
   @override
@@ -189,9 +206,10 @@ class _Hero extends StatelessWidget {
               style: GText.hero,
               children: [
                 TextSpan(text: titulo),
-                TextSpan(
-                    text: tituloEm,
-                    style: GText.hero.copyWith(color: GColors.red)),
+                if (tituloEm != null)
+                  TextSpan(
+                      text: tituloEm,
+                      style: GText.hero.copyWith(color: GColors.red)),
               ],
             ),
           ),

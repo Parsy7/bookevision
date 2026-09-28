@@ -85,8 +85,9 @@ void main() {
 
   group('portada', () {
     testWidgets('hero, medidor y sellos', (tester) async {
-      await tester.pumpWidget(
-          _app(const GReviewListScreen(), ApiFalsaConVarias()));
+      await tester.pumpWidget(_app(
+          const GReviewListScreen(libroId: 1, libroTitle: 'Mi libro de prueba'),
+          ApiFalsaConVarias()));
       await _asentar(tester);
 
       expect(find.textContaining('LA JAULA'), findsNothing,
@@ -99,7 +100,9 @@ void main() {
     });
 
     testWidgets('lista vacía: página en blanco', (tester) async {
-      await tester.pumpWidget(_app(const GReviewListScreen(), ApiFalsaVacia()));
+      await tester.pumpWidget(_app(
+          const GReviewListScreen(libroId: 1, libroTitle: 'Mi libro de prueba'),
+          ApiFalsaVacia()));
       await _asentar(tester);
 
       expect(find.textContaining('Página en '), findsOneWidget);
