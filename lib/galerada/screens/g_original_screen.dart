@@ -16,8 +16,12 @@ class GOriginalScreen extends StatelessWidget {
         title: 'Original',
         trailing: [GStamp('Solo lectura')],
       ),
+      // Esta pantalla no tiene barra inferior (la lleva GFoot en las demás,
+      // y reserva ahí el hueco del menú de Android). Sin nada que lo haga,
+      // el scroll llega hasta el borde y el último párrafo queda debajo del
+      // menú de gestos o de los 3 botones del sistema.
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(GSpacing.page),
+        padding: GSpacing.pageScroll(context),
         child: GProseFlow(chapter),
       ),
     );

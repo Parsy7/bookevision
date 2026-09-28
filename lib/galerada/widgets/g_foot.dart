@@ -78,7 +78,15 @@ class GFoot extends StatelessWidget {
         top: false,
         child: SizedBox(
           height: GSpacing.foot,
-          child: Row(children: children),
+          // El `Row` sin `stretch` deja que cada hijo se encoja a su
+          // contenido (el texto o el icono) y lo centra dentro de los 64dp,
+          // dejando un hueco de papel arriba y abajo — el botón rojo no
+          // llenaba la barra. `stretch` fuerza a todos los hijos (las flechas
+          // y la CTA) a ocupar el alto entero.
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
+          ),
         ),
       ),
     );

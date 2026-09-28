@@ -8,11 +8,13 @@ import 'package:bookevision/config/app_config.dart';
 import 'package:bookevision/models/answer.dart';
 import 'package:bookevision/models/review.dart';
 import 'package:bookevision/galerada/screens/g_confirm_screen.dart';
+import 'package:bookevision/galerada/screens/g_original_screen.dart';
 import 'package:bookevision/galerada/screens/g_review_list_screen.dart';
 import 'package:bookevision/galerada/screens/g_reviewer_screen.dart';
 import 'package:bookevision/galerada/theme/g_colors.dart';
 import 'package:bookevision/galerada/theme/g_theme.dart';
 import 'package:bookevision/galerada/widgets/g_bits.dart';
+import 'package:bookevision/galerada/widgets/g_foot.dart';
 import 'package:bookevision/galerada/widgets/g_paragraphs.dart';
 import 'package:bookevision/galerada/widgets/g_prose.dart';
 import 'package:bookevision/galerada/widgets/g_suggestion_card.dart';
@@ -278,5 +280,85 @@ void main() {
         greaterThan(estado + 40));
 
     await tester.pump(const Duration(seconds: 2));
+  });
+
+  group('barra inferior', () {
+    testWidgets('la CTA llena el alto entero de la barra, no solo su texto',
+        (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        theme: galeradaTheme,
+        home: Scaffold(
+          bottomNavigationBar: GFoot.navegada(
+            label: '17 pendientes',
+            fill: GFootFill.red,
+            onMain: () {},
+            onUp: () {},
+            onDown: () {},
+          ),
+          body: const SizedBox(),
+        ),
+      ));
+      await tester.pump();
+
+      final barra = tester.getRect(find.byType(GFoot));
+      // El Container rojo es el que está entre las dos flechas (64..ancho-64).
+      final cta = tester.getRect(find
+          .ancestor(of: find.text('17 pendientes'), matching: find.byType(Container))
+          .first);
+
+      expect(cta.height, closeTo(barra.height, 1),
+          reason: 'antes se encogía al alto del texto y dejaba papel arriba '
+              'y abajo');
+      expect(cta.top, closeTo(barra.top, 1));
+      expect(cta.bottom, closeTo(barra.bottom, 1));
+    });
+
+    testWidgets('las flechas también llenan el alto entero', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        theme: galeradaTheme,
+        home: Scaffold(
+          bottomNavigationBar: GFoot.navegada(
+            label: '1 pendiente',
+            fill: GFootFill.red,
+            onMain: () {},
+            onUp: () {},
+            onDown: () {},
+          ),
+          body: const SizedBox(),
+        ),
+      ));
+      await tester.pump();
+
+      final barra = tester.getRect(find.byType(GFoot));
+      final flecha = tester.getRect(find
+          .ancestor(of: find.byIcon(Icons.north), matching: find.byType(Container))
+          .first);
+
+      expect(flecha.height, closeTo(barra.height, 1));
+    });
+  });
+
+  testWidgets('el capítulo original reserva el hueco del menú de Android',
+      (tester) async {
+    addTearDown(tester.view.reset);
+    const navegacion = 48.0; // menú de gestos / 3 botones de Android
+    final fisicos = navegacion * tester.view.devicePixelRatio;
+    tester.view.viewPadding = FakeViewPadding(bottom: fisicos);
+    tester.view.padding = FakeViewPadding(bottom: fisicos);
+
+    final capitulo = List.filled(30, 'Un párrafo de relleno bien largo.')
+        .join('\n\n');
+    await tester.pumpWidget(MaterialApp(
+      theme: galeradaTheme,
+      home: GOriginalScreen(chapter: capitulo),
+    ));
+    await tester.pump();
+
+    await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -5000));
+    await tester.pump();
+
+    final ultimo = tester.getRect(find.byType(GProse).last);
+    expect(ultimo.bottom, lessThanOrEqualTo(600 - navegacion),
+        reason: 'el último párrafo quedaba debajo del menú de Android');
   });
 }
