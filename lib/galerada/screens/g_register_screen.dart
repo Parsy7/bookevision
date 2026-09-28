@@ -42,6 +42,12 @@ class _GRegisterScreenState extends State<GRegisterScreen> {
         password: _passwordController.text,
       );
       widget.onAuthenticated();
+      // GRegisterScreen se abre con Navigator.push encima de GLoginScreen:
+      // el nuevo GAuthGate ya está construido por debajo, pero esta pantalla
+      // sigue tapándolo hasta que se cierra ella misma.
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
     } catch (e) {
       setState(() {
         _busy = false;
