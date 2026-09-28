@@ -252,4 +252,31 @@ void main() {
     expect(find.text('Guardar .md'), findsOneWidget);
     expect(find.text('Copiar todo'), findsOneWidget);
   });
+
+  testWidgets('la barra de estado de Android no tapa la barra superior',
+      (tester) async {
+    addTearDown(tester.view.reset);
+    const estado = 24.0; // reloj, iconos y batería del sistema
+    final fisicos = estado * tester.view.devicePixelRatio;
+    tester.view.viewPadding = FakeViewPadding(top: fisicos);
+    tester.view.padding = FakeViewPadding(top: fisicos);
+
+    await tester
+        .pumpWidget(_app(const GReviewerScreen(reviewId: 'x'), ApiFalsa()));
+    await _asentar(tester);
+
+    for (final f in [
+      find.byIcon(Icons.arrow_back),
+      find.byIcon(Icons.more_horiz),
+    ]) {
+      expect(tester.getRect(f).top, greaterThanOrEqualTo(estado),
+          reason: 'el hub de Android se comía el botón y no se podía pulsar');
+    }
+
+    // Y el cuerpo sigue empezando por debajo de la barra, no detrás.
+    expect(tester.getRect(find.byType(GProseBlock).first).top,
+        greaterThan(estado + 40));
+
+    await tester.pump(const Duration(seconds: 2));
+  });
 }
