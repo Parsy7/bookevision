@@ -1,6 +1,19 @@
 # PATH_INFO funciona por defecto en Apache+PHP, así que el router de index.php
 # no necesita reglas de reescritura. Bloqueamos el acceso directo a la config
 # y a los .sql por si el servidor los sirviera como texto plano.
+
+# Apache descarta la cabecera Authorization antes de que llegue a PHP salvo
+# que se le indique explícitamente lo contrario. Sin esto, el login por
+# Bearer token falla con 401 aunque el token sea correcto (mismo arreglo que
+# ya lleva Anotto).
+CGIPassAuth On
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP:Authorization} .
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+</IfModule>
+
 <FilesMatch "^(db\.php|db\.example\.php)$">
   Require all denied
 </FilesMatch>
