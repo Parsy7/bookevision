@@ -1,0 +1,178 @@
+import 'package:flutter/material.dart';
+import '../theme/g_colors.dart';
+import '../theme/g_spacing.dart';
+import '../theme/g_text.dart';
+
+/// Relleno de la CTA de la barra inferior.
+enum GFootFill { red, ink, off }
+
+/// Barra inferior de 64dp, pegada abajo y con borde superior de tinta.
+///
+/// Tres formas: navegación + CTA ([GFoot.navegada]), una sola CTA
+/// ([GFoot.unica]) o dos mitades ([GFoot.partida]). El hueco de la barra de
+/// Android se reserva aquí, no en el scroll.
+class GFoot extends StatelessWidget {
+  final List<Widget> children;
+
+  const GFoot._(this.children);
+
+  /// ↑ | CTA | ↓ — el lector.
+  factory GFoot.navegada({
+    required String label,
+    required GFootFill fill,
+    required VoidCallback? onMain,
+    required VoidCallback? onUp,
+    required VoidCallback? onDown,
+  }) {
+    return GFoot._([
+      _Nav(icon: Icons.north, tooltip: 'Pendiente anterior', onTap: onUp),
+      Expanded(child: _Main(label: label, fill: fill, onTap: onMain)),
+      _Nav(
+        icon: Icons.south,
+        tooltip: 'Pendiente siguiente',
+        onTap: onDown,
+        alFinal: true,
+      ),
+    ]);
+  }
+
+  /// Una sola CTA a todo el ancho.
+  factory GFoot.unica({
+    required String label,
+    required GFootFill fill,
+    required VoidCallback? onTap,
+    IconData? icon,
+  }) {
+    return GFoot._([
+      Expanded(child: _Main(label: label, fill: fill, onTap: onTap, icon: icon)),
+    ]);
+  }
+
+  /// Dos mitades: Guardar .md | Copiar todo, o Guardar | Cancelar al editar.
+  factory GFoot.partida({
+    required String leftLabel,
+    required String rightLabel,
+    required VoidCallback onLeft,
+    required VoidCallback onRight,
+    GFootFill leftFill = GFootFill.red,
+    GFootFill rightFill = GFootFill.ink,
+  }) {
+    return GFoot._([
+      Expanded(
+        child: _Main(label: leftLabel, fill: leftFill, onTap: onLeft, conBorde: true),
+      ),
+      Expanded(
+        child: _Main(label: rightLabel, fill: rightFill, onTap: onRight),
+      ),
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: GColors.paper,
+        border: Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: GSpacing.foot,
+          child: Row(children: children),
+        ),
+      ),
+    );
+  }
+}
+
+class _Nav extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onTap;
+  final bool alFinal;
+
+  const _Nav({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.alFinal = false,
+  });
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: tooltip,
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            width: GSpacing.foot,
+            decoration: BoxDecoration(
+              border: Border(
+                right: alFinal
+                    ? BorderSide.none
+                    : const BorderSide(color: GColors.ink, width: GSpacing.border),
+                left: alFinal
+                    ? const BorderSide(color: GColors.ink, width: GSpacing.border)
+                    : BorderSide.none,
+              ),
+            ),
+            child: Icon(icon, size: 20, color: GColors.ink),
+          ),
+        ),
+      );
+}
+
+class _Main extends StatelessWidget {
+  final String label;
+  final GFootFill fill;
+  final VoidCallback? onTap;
+  final IconData? icon;
+  final bool conBorde;
+
+  const _Main({
+    required this.label,
+    required this.fill,
+    required this.onTap,
+    this.icon,
+    this.conBorde = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final (Color? fondo, Color texto) = switch (fill) {
+      GFootFill.red => (GColors.red, GColors.onRed),
+      GFootFill.ink => (GColors.ink, GColors.onInk),
+      GFootFill.off => (null, GColors.grey3),
+    };
+
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        color: fondo,
+        foregroundDecoration: conBorde
+            ? const BoxDecoration(
+                border: Border(
+                  right: BorderSide(color: GColors.ink, width: GSpacing.border),
+                ),
+              )
+            : null,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 20, color: texto),
+              const SizedBox(width: GSpacing.barTop),
+            ],
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GText.footButton.copyWith(color: texto),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

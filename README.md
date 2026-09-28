@@ -13,6 +13,20 @@ Estado del build por fases:
 - [ ] Fase 3 — Modelos + `ApiService` + `ReviewSession` (estado con Provider).
 - [ ] Fase 4 — Pantallas: lista, lector con tarjetas, edición manual, preview, confirmación y export `.md`.
 
+## Pieles
+
+La app tiene **dos diseños completos que conviven**. Comparten `models/`,
+`services/` y `utils/`: lo único que cambia es la capa de vista.
+
+| Piel | Dónde | Estética |
+|---|---|---|
+| `Piel.pergamino` | `lib/theme`, `lib/widgets`, `lib/screens` | el original: papel cálido, serifas de libro, esquinas redondeadas |
+| `Piel.galerada` | `lib/galerada` | prueba de imprenta: papel, tinta negra y el rojo del corrector, radio 0 y bordes de 1px |
+
+Se cambia en un solo sitio, `AppConfig.piel` (`lib/config/app_config.dart`), que
+es lo único del código que pregunta por la piel. Galerada sigue el handoff
+`design_handoff_galerada` (Instrument Serif + Newsreader + JetBrains Mono).
+
 ## Estructura
 
 ```

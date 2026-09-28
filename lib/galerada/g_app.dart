@@ -1,24 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
-import 'config/app_config.dart';
-import 'galerada/g_app.dart';
-import 'screens/review_list_screen.dart';
-import 'services/api_service.dart';
-import 'theme/app_theme.dart';
+import '../services/api_service.dart';
+import 'screens/g_review_list_screen.dart';
+import 'theme/g_theme.dart';
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('es', null);
-  runApp(switch (AppConfig.piel) {
-    Piel.pergamino => const BookeVisionApp(),
-    Piel.galerada => const GaleradaApp(),
-  });
-}
-
-class BookeVisionApp extends StatelessWidget {
-  const BookeVisionApp({super.key});
+/// Raíz de la piel «Galerada». Comparte `models/`, `services/` y `utils/` con
+/// la piel original: aquí solo cambia la vista.
+class GaleradaApp extends StatelessWidget {
+  const GaleradaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -29,14 +19,14 @@ class BookeVisionApp extends StatelessWidget {
       child: MaterialApp(
         title: 'BookeVision',
         debugShowCheckedModeBanner: false,
-        theme: appTheme,
+        theme: galeradaTheme,
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: const [Locale('es'), Locale('en')],
-        home: const ReviewListScreen(),
+        home: const GReviewListScreen(),
       ),
     );
   }

@@ -68,3 +68,9 @@ class ApiFalsaConVarias extends ApiFalsa {
           ),
       ];
 }
+
+/// Lista vacía, para la pantalla «Página en blanco».
+class ApiFalsaVacia extends ApiFalsa {
+  @override
+  Future<List<ReviewSummary>> getRevisiones() async => const [];
+}
