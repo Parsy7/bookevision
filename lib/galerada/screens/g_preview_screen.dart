@@ -32,7 +32,7 @@ class GPreviewScreen extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(
                 horizontal: GSpacing.page, vertical: GSpacing.barTop),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(color: GColors.ink, width: GSpacing.border),
               ),

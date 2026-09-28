@@ -258,7 +258,7 @@ class _EditorState extends State<_Editor> {
     return Container(
       padding: const EdgeInsets.symmetric(
           horizontal: GSpacing.card, vertical: GSpacing.blockV),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: GColors.white,
         border: Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
       ),

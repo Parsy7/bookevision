@@ -1,52 +1,89 @@
 import 'package:flutter/painting.dart';
+import '../../models/tema.dart';
+import '../../services/api_service.dart';
+import '../../services/tema_store.dart';
 
-/// Paleta «Galerada»: una prueba de imprenta. Papel, tinta negra y el rojo del
-/// corrector. Mismo criterio que la paleta Pergamino de `AppColors`: ningún
-/// color se escribe suelto en la UI, siempre un token de aquí.
+/// Paleta «Galerada»: papel, tinta y un acento. Los valores ya no son fijos —
+/// vienen del [Tema] activo (ver `GET /temas` y "Mi perfil") — pero cada
+/// token sigue teniendo un único significado en toda la UI, igual que antes.
 ///
 /// El verde de «resuelta» desaparece: lo resuelto se marca con relleno de
 /// tinta, no con color.
 class GColors {
   GColors._();
 
+  static Tema _current = Tema.clasico;
+
+  /// El [Tema] completo activo — para saber cuál está elegido en "Mi perfil".
+  static Tema get actual => _current;
+
+  /// Cambia la paleta activa. Se llama al arrancar (con el tema guardado o
+  /// el que sincronice el login) y al elegir uno nuevo en "Mi perfil".
+  static void aplicar(Tema tema) => _current = tema;
+
+  /// Aplica el último tema guardado localmente, si hay alguno. Se llama en
+  /// `main()` antes de `runApp` para no pintar un frame con el Clásico por
+  /// defecto y luego saltar al tema real.
+  static Future<void> cargarCache() async {
+    final guardado = await TemaStore().cargar();
+    if (guardado != null) _current = guardado;
+  }
+
+  /// Trae el tema elegido por el usuario desde el servidor y lo aplica —
+  /// para que, al entrar desde un dispositivo nuevo, se vea el tema de
+  /// siempre y no el Clásico por defecto. Best-effort: sin red o sin tema
+  /// propio, se queda con lo que ya hubiera.
+  static Future<void> sincronizarDesdeServidor(ApiService api) async {
+    try {
+      final temaId = await api.getMiTemaId();
+      if (temaId == null) return;
+      final temas = await api.getTemas();
+      final tema = temas.firstWhere((t) => t.id == temaId, orElse: () => Tema.clasico);
+      _current = tema;
+      await TemaStore().guardar(tema);
+    } catch (_) {
+      // Sin red o fallo del servidor: se sigue con lo que ya había.
+    }
+  }
+
   /// Fondo de página.
-  static const Color paper = Color(0xFFF3F0E8);
+  static Color get paper => _current.paper;
 
   /// Tarjetas, diálogos y menús.
-  static const Color sheet = Color(0xFFFBFAF6);
+  static Color get sheet => _current.sheet;
 
   /// Bloque de la propuesta y fondo del editor.
-  static const Color white = Color(0xFFFFFFFF);
+  static Color get white => _current.white;
 
   /// Texto, **todos** los bordes, rellenos y estado activo.
-  static const Color ink = Color(0xFF141414);
+  static Color get ink => _current.ink;
 
-  /// Acento del corrector: CTA principal, pendiente, eliminar, tachado.
-  static const Color red = Color(0xFFE4401C);
+  /// Acento del tema: CTA principal, pendiente, eliminar, tachado.
+  static Color get red => _current.acento;
 
   /// «Escribir yo» y borde del editor.
-  static const Color blue = Color(0xFF2449D8);
+  static Color get blue => _current.blue;
 
   /// Cursivas: motivo de la sugerencia, subtítulos.
-  static const Color grey1 = Color(0xFF5E594F);
+  static Color get grey1 => _current.grey1;
 
   /// Metadatos mono y texto de contexto.
-  static const Color grey2 = Color(0xFF6B665E);
+  static Color get grey2 => _current.grey2;
 
   /// Texto tachado (un punto más cálido que [grey2]).
-  static const Color strike = Color(0xFF6D675D);
+  static Color get strike => _current.strike;
 
   /// Números de párrafo y deshabilitado.
-  static const Color grey3 = Color(0xFF8A847A);
+  static Color get grey3 => _current.grey3;
 
-  /// Velo de los diálogos: rgba(20,20,20,.55).
-  static const Color scrim = Color(0x8C141414);
+  /// Velo de los diálogos: tinta al 55%.
+  static Color get scrim => _current.scrim;
 
   // Texto sobre relleno.
-  static const Color onInk = paper;
-  static const Color onRed = Color(0xFFFFFFFF);
-  static const Color onBlue = Color(0xFFFFFFFF);
+  static Color get onInk => _current.onInk;
+  static Color get onRed => _current.onRed;
+  static Color get onBlue => _current.onBlue;
 
   /// Sobreimpreso de tinta al 6% para el estado pulsado.
-  static const Color press = Color(0x0F141414);
+  static Color get press => _current.press;
 }

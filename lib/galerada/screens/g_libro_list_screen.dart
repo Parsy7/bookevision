@@ -2,22 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/libro.dart';
 import '../../services/api_service.dart';
-import '../../services/auth_service.dart';
 import '../theme/g_colors.dart';
 import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
 import '../widgets/g_bits.dart';
 import '../widgets/g_button.dart';
 import 'g_create_libro_screen.dart';
+import 'g_profile_screen.dart';
 import 'g_review_list_screen.dart';
 
 /// «Mis libros»: portada de la piel tras el login. Cada fila es un proyecto
 /// de libro; entrar en uno lleva a su lista de capítulos (lo que antes era
 /// la portada única de la app).
 class GLibroListScreen extends StatefulWidget {
-  final VoidCallback onLoggedOut;
-
-  const GLibroListScreen({super.key, required this.onLoggedOut});
+  const GLibroListScreen({super.key});
 
   @override
   State<GLibroListScreen> createState() => _GLibroListScreenState();
@@ -61,9 +59,9 @@ class _GLibroListScreenState extends State<GLibroListScreen> {
         .then((_) => _refresh());
   }
 
-  Future<void> _cerrarSesion() async {
-    await AuthService().logout();
-    widget.onLoggedOut();
+  void _abrirPerfil() {
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const GProfileScreen()));
   }
 
   @override
@@ -75,14 +73,16 @@ class _GLibroListScreenState extends State<GLibroListScreen> {
           future: _future,
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
-              return const Center(
+              return Center(
                   child: CircularProgressIndicator(color: GColors.ink));
             }
             if (snap.hasError) {
               return _Error(error: snap.error!, onRetry: _refresh);
             }
             final items = snap.data ?? const [];
-            if (items.isEmpty) return _Vacia(onNuevo: _nuevoLibro, onLogout: _cerrarSesion);
+            if (items.isEmpty) {
+              return _Vacia(onNuevo: _nuevoLibro, onPerfil: _abrirPerfil);
+            }
 
             return Stack(
               children: [
@@ -99,7 +99,7 @@ class _GLibroListScreenState extends State<GLibroListScreen> {
                     itemCount: items.length + 1,
                     itemBuilder: (_, i) {
                       if (i == 0) {
-                        return _Hero(numero: items.length, onLogout: _cerrarSesion);
+                        return _Hero(numero: items.length, onPerfil: _abrirPerfil);
                       }
                       final libro = items[i - 1];
                       return _Fila(libro: libro, onTap: () => _abrirLibro(libro));
@@ -126,9 +126,9 @@ class _GLibroListScreenState extends State<GLibroListScreen> {
 
 class _Hero extends StatelessWidget {
   final int numero;
-  final VoidCallback onLogout;
+  final VoidCallback onPerfil;
 
-  const _Hero({required this.numero, required this.onLogout});
+  const _Hero({required this.numero, required this.onPerfil});
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +136,7 @@ class _Hero extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(
           GSpacing.page, 22, GSpacing.page, GSpacing.gap),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
       ),
       child: Column(
@@ -147,8 +147,8 @@ class _Hero extends StatelessWidget {
             children: [
               const GMono('BOOKEVISION'),
               GestureDetector(
-                onTap: onLogout,
-                child: const GMono.muted('Cerrar sesión'),
+                onTap: onPerfil,
+                child: const GMono.muted('Mi perfil'),
               ),
             ],
           ),
@@ -178,7 +178,7 @@ class _Fila extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(
             horizontal: GSpacing.page, vertical: GSpacing.gap),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(color: GColors.ink, width: GSpacing.border),
           ),
@@ -197,7 +197,7 @@ class _Fila extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: GColors.ink),
+            Icon(Icons.chevron_right, color: GColors.ink),
           ],
         ),
       ),
@@ -207,14 +207,14 @@ class _Fila extends StatelessWidget {
 
 class _Vacia extends StatelessWidget {
   final VoidCallback onNuevo;
-  final VoidCallback onLogout;
-  const _Vacia({required this.onNuevo, required this.onLogout});
+  final VoidCallback onPerfil;
+  const _Vacia({required this.onNuevo, required this.onPerfil});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _Hero(numero: 0, onLogout: onLogout),
+        _Hero(numero: 0, onPerfil: onPerfil),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: GSpacing.page),

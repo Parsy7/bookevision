@@ -184,7 +184,7 @@ class _VistaState extends State<_Vista> {
     switch (session.loadStatus) {
       case LoadStatus.idle:
       case LoadStatus.loading:
-        return const Center(
+        return Center(
             child: CircularProgressIndicator(color: GColors.ink));
       case LoadStatus.error:
         return Padding(
@@ -336,7 +336,7 @@ class _Progreso extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(
           horizontal: GSpacing.page, vertical: GSpacing.barTop),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
       ),
       child: Row(

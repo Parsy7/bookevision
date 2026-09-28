@@ -70,7 +70,7 @@ class GFoot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: GColors.paper,
         border: Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
       ),
@@ -117,9 +117,9 @@ class _Nav extends StatelessWidget {
               border: Border(
                 right: alFinal
                     ? BorderSide.none
-                    : const BorderSide(color: GColors.ink, width: GSpacing.border),
+                    : BorderSide(color: GColors.ink, width: GSpacing.border),
                 left: alFinal
-                    ? const BorderSide(color: GColors.ink, width: GSpacing.border)
+                    ? BorderSide(color: GColors.ink, width: GSpacing.border)
                     : BorderSide.none,
               ),
             ),
@@ -157,7 +157,7 @@ class _Main extends StatelessWidget {
       child: Container(
         color: fondo,
         foregroundDecoration: conBorde
-            ? const BoxDecoration(
+            ? BoxDecoration(
                 border: Border(
                   right: BorderSide(color: GColors.ink, width: GSpacing.border),
                 ),

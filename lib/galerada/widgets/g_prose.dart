@@ -222,7 +222,7 @@ class _GProseBlockState extends State<GProseBlock> {
                 : GSpacing.proseIndent,
           ),
           decoration: editado
-              ? const BoxDecoration(
+              ? BoxDecoration(
                   border: Border(
                     left: BorderSide(color: GColors.red, width: GSpacing.stripe),
                   ),
@@ -289,16 +289,17 @@ class _GProseBlockState extends State<GProseBlock> {
 
   /// Ver original | Ver modificado | Restaurar, como en la pantalla 06.
   Widget _chips() {
-    Widget chip(String label, {bool activo = false, Color color = GColors.ink, required VoidCallback onTap}) {
+    Widget chip(String label, {bool activo = false, Color? color, required VoidCallback onTap}) {
+      final resuelto = color ?? GColors.ink;
       return InkWell(
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
           decoration: BoxDecoration(
-            color: activo ? color : null,
-            border: Border.all(color: color, width: GSpacing.border),
+            color: activo ? resuelto : null,
+            border: Border.all(color: resuelto, width: GSpacing.border),
           ),
-          child: GMono(label, color: activo ? GColors.onInk : color),
+          child: GMono(label, color: activo ? GColors.onInk : resuelto),
         ),
       );
     }

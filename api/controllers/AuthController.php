@@ -20,6 +20,10 @@ class AuthController {
                 if ($method !== 'GET') { $this->methodNotAllowed(); return; }
                 $this->me();
                 break;
+            case 'tema':
+                if ($method !== 'PUT') { $this->methodNotAllowed(); return; }
+                $this->setTema();
+                break;
             default:
                 http_response_code(404);
                 echo json_encode(['error' => 'Ruta no encontrada']);
@@ -103,8 +107,35 @@ class AuthController {
     private function me(): void {
         $userId = require_auth();
         $pdo = get_pdo();
-        $stmt = $pdo->prepare('SELECT id, email, name FROM users WHERE id = :id');
+        $stmt = $pdo->prepare('SELECT id, email, name, tema_id FROM users WHERE id = :id');
         $stmt->execute(['id' => $userId]);
-        echo json_encode($stmt->fetch());
+        $user = $stmt->fetch();
+        $user['tema_id'] = $user['tema_id'] !== null ? (int)$user['tema_id'] : null;
+        echo json_encode($user);
+    }
+
+    /** Cambia el tema de color elegido por el usuario logueado. */
+    private function setTema(): void {
+        $userId = require_auth();
+        $body = json_body();
+        $temaId = $body['tema_id'] ?? null;
+        if (!$temaId || !ctype_digit((string)$temaId)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Falta tema_id']);
+            return;
+        }
+
+        $pdo = get_pdo();
+        $stmt = $pdo->prepare('SELECT 1 FROM temas WHERE id = :id');
+        $stmt->execute(['id' => $temaId]);
+        if (!$stmt->fetch()) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Tema no encontrado']);
+            return;
+        }
+
+        $pdo->prepare('UPDATE users SET tema_id = :tema_id WHERE id = :user_id')
+            ->execute(['tema_id' => $temaId, 'user_id' => $userId]);
+        echo json_encode(['ok' => true]);
     }
 }

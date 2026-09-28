@@ -55,7 +55,7 @@ class GActions extends StatelessWidget {
     }
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
       ),
       child: Column(
@@ -109,10 +109,10 @@ class _Boton extends StatelessWidget {
           color: accion.active ? tono : null,
           border: Border(
             right: conBordeDerecho
-                ? const BorderSide(color: GColors.ink, width: GSpacing.border)
+                ? BorderSide(color: GColors.ink, width: GSpacing.border)
                 : BorderSide.none,
             bottom: conBordeInferior
-                ? const BorderSide(color: GColors.ink, width: GSpacing.border)
+                ? BorderSide(color: GColors.ink, width: GSpacing.border)
                 : BorderSide.none,
           ),
         ),

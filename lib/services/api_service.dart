@@ -5,6 +5,7 @@ import '../models/libro.dart';
 import '../models/review.dart';
 import '../models/review_summary.dart';
 import '../models/review_state.dart';
+import '../models/tema.dart';
 import 'auth_service.dart';
 
 /// Cliente HTTP de la API del revisor (PHP + MariaDB). Adjunta el token de
@@ -44,6 +45,32 @@ class ApiService {
   Future<void> deleteLibro(int id) async {
     final res = await http.delete(_u('/libros/$id'), headers: await _headers);
     _checkOk(res);
+  }
+
+  // ---------- Temas ----------
+
+  Future<List<Tema>> getTemas() async {
+    final res = await http.get(_u('/temas'), headers: await _headers);
+    _checkOk(res);
+    final list = jsonDecode(res.body) as List;
+    return list.map((e) => Tema.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> setTema(int temaId) async {
+    final res = await http.put(
+      _u('/auth/tema'),
+      headers: await _headers,
+      body: jsonEncode({'tema_id': temaId}),
+    );
+    _checkOk(res);
+  }
+
+  /// `tema_id` del usuario logueado, o `null` si nunca ha elegido uno.
+  Future<int?> getMiTemaId() async {
+    final res = await http.get(_u('/auth/me'), headers: await _headers);
+    _checkOk(res);
+    final decoded = jsonDecode(res.body) as Map<String, dynamic>;
+    return (decoded['tema_id'] as num?)?.toInt();
   }
 
   // ---------- Revisiones ----------

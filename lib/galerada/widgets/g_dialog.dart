@@ -26,7 +26,7 @@ class GDialog {
         insetPadding: const EdgeInsets.all(28),
         backgroundColor: GColors.sheet,
         elevation: 0,
-        shape: const RoundedRectangleBorder(
+        shape: RoundedRectangleBorder(
           side: BorderSide(color: GColors.ink, width: GSpacing.border),
         ),
         child: Column(
@@ -35,7 +35,7 @@ class GDialog {
           children: [
             Container(
               padding: const EdgeInsets.all(GSpacing.card),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(color: GColors.ink, width: GSpacing.border),
                 ),
@@ -116,7 +116,7 @@ class GMenu extends StatelessWidget {
       elevation: 0,
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(minWidth: 230, maxWidth: 230),
-      shape: const RoundedRectangleBorder(
+      shape: RoundedRectangleBorder(
         side: BorderSide(color: GColors.ink, width: GSpacing.border),
       ),
       itemBuilder: (_) => [
@@ -130,7 +130,7 @@ class GMenu extends StatelessWidget {
                   horizontal: GSpacing.gap, vertical: GSpacing.card),
               decoration: BoxDecoration(
                 border: i < items.length - 1
-                    ? const Border(
+                    ? Border(
                         bottom: BorderSide(
                             color: GColors.ink, width: GSpacing.border))
                     : null,
@@ -163,7 +163,7 @@ class GMenu extends StatelessWidget {
           color: GColors.ink,
           border: Border.all(color: GColors.ink, width: GSpacing.border),
         ),
-        child: const Icon(Icons.more_horiz, size: 20, color: GColors.onInk),
+        child: Icon(Icons.more_horiz, size: 20, color: GColors.onInk),
       ),
     );
   }

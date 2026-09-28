@@ -19,7 +19,7 @@ class GaleradaApp extends StatelessWidget {
       child: MaterialApp(
         title: 'BookeVision',
         debugShowCheckedModeBanner: false,
-        theme: galeradaTheme,
+        theme: buildGaleradaTheme(),
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,

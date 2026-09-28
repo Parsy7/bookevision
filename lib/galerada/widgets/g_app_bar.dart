@@ -49,7 +49,7 @@ class GAppBar extends StatelessWidget implements PreferredSizeWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(
           GSpacing.page, GSpacing.barTop, GSpacing.page, GSpacing.barBottom),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: GColors.paper,
         border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
       ),

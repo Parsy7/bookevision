@@ -27,22 +27,18 @@ class _GAuthGateState extends State<GAuthGate> {
     setState(() => _tokenFuture = _auth.readToken());
   }
 
-  void _onLoggedOut() {
-    setState(() => _tokenFuture = _auth.readToken());
-  }
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<String?>(
       future: _tokenFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(
+          return Scaffold(
             body: Center(child: CircularProgressIndicator(color: GColors.ink)),
           );
         }
         return snapshot.data != null
-            ? GLibroListScreen(onLoggedOut: _onLoggedOut)
+            ? const GLibroListScreen()
             : GLoginScreen(onAuthenticated: _onAuthenticated);
       },
     );

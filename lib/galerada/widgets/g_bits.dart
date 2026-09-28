@@ -3,25 +3,44 @@ import '../theme/g_colors.dart';
 import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
 
+enum _GMonoVariant { normal, muted, red }
+
 /// Etiqueta mono en mayúsculas: metadatos, estados, cabeceras de tarjeta.
+///
+/// El color por defecto de cada variante (`GColors.ink`/`grey2`/`red`) ya no
+/// es constante de compilación —depende del tema activo—, así que se resuelve
+/// en `build()` a partir de [_variant] en vez de fijarse en el constructor:
+/// así los tres constructores pueden seguir siendo `const`.
 class GMono extends StatelessWidget {
   final String label;
-  final Color color;
+  final Color? color;
+  final _GMonoVariant _variant;
   final bool small;
 
-  const GMono(this.label, {super.key, this.color = GColors.ink, this.small = false});
+  const GMono(this.label, {super.key, this.color, this.small = false})
+      : _variant = _GMonoVariant.normal;
 
   const GMono.muted(this.label, {super.key, this.small = false})
-      : color = GColors.grey2;
+      : color = null,
+        _variant = _GMonoVariant.muted;
 
   const GMono.red(this.label, {super.key, this.small = false})
-      : color = GColors.red;
+      : color = null,
+        _variant = _GMonoVariant.red;
 
   @override
-  Widget build(BuildContext context) => Text(
-        label.toUpperCase(),
-        style: (small ? GText.monoSm : GText.mono).copyWith(color: color),
-      );
+  Widget build(BuildContext context) {
+    final resuelto = color ??
+        switch (_variant) {
+          _GMonoVariant.normal => GColors.ink,
+          _GMonoVariant.muted => GColors.grey2,
+          _GMonoVariant.red => GColors.red,
+        };
+    return Text(
+      label.toUpperCase(),
+      style: (small ? GText.monoSm : GText.mono).copyWith(color: resuelto),
+    );
+  }
 }
 
 /// Sello de estado de la lista: contorno de tinta, o relleno si está listo.

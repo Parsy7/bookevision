@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
+import '../theme/g_colors.dart';
 import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
 import '../widgets/g_bits.dart';
@@ -41,6 +44,9 @@ class _GLoginScreenState extends State<GLoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+      if (mounted) {
+        await GColors.sincronizarDesdeServidor(context.read<ApiService>());
+      }
       widget.onAuthenticated();
     } catch (e) {
       setState(() {

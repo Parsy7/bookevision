@@ -37,7 +37,7 @@ Review _documento() => const Review(
 
 Widget _app(Widget home, ApiService api) => Provider<ApiService>.value(
       value: api,
-      child: MaterialApp(theme: galeradaTheme, home: home),
+      child: MaterialApp(theme: buildGaleradaTheme(), home: home),
     );
 
 /// Lleva el widget a la vista antes de pulsarlo: el capítulo de prueba es más
@@ -289,7 +289,7 @@ void main() {
     testWidgets('la CTA llena el alto entero de la barra, no solo su texto',
         (tester) async {
       await tester.pumpWidget(MaterialApp(
-        theme: galeradaTheme,
+        theme: buildGaleradaTheme(),
         home: Scaffold(
           bottomNavigationBar: GFoot.navegada(
             label: '17 pendientes',
@@ -318,7 +318,7 @@ void main() {
 
     testWidgets('las flechas también llenan el alto entero', (tester) async {
       await tester.pumpWidget(MaterialApp(
-        theme: galeradaTheme,
+        theme: buildGaleradaTheme(),
         home: Scaffold(
           bottomNavigationBar: GFoot.navegada(
             label: '1 pendiente',
@@ -352,7 +352,7 @@ void main() {
     final capitulo = List.filled(30, 'Un párrafo de relleno bien largo.')
         .join('\n\n');
     await tester.pumpWidget(MaterialApp(
-      theme: galeradaTheme,
+      theme: buildGaleradaTheme(),
       home: GOriginalScreen(chapter: capitulo),
     ));
     await tester.pump();

@@ -100,7 +100,7 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
           future: _future,
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
-              return const Center(
+              return Center(
                   child: CircularProgressIndicator(color: GColors.ink));
             }
             if (snap.hasError) {
@@ -187,7 +187,7 @@ class _Hero extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(
           GSpacing.page, 22, GSpacing.page, GSpacing.gap),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
       ),
       child: Column(
@@ -263,7 +263,7 @@ class _Fila extends StatelessWidget {
         color: GColors.red,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: GSpacing.page),
-        child: const GMono('Borrar', color: GColors.onRed),
+        child: GMono('Borrar', color: GColors.onRed),
       ),
       child: InkWell(
         onTap: onTap,
@@ -271,7 +271,7 @@ class _Fila extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(
               horizontal: GSpacing.page, vertical: GSpacing.gap),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(color: GColors.ink, width: GSpacing.border),
             ),
@@ -355,7 +355,7 @@ class _Vacia extends StatelessWidget {
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.all(GSpacing.page),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
             ),
             child: const GMono.muted('Formato · la-jaula-rota-review-v4'),

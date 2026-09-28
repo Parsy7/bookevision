@@ -118,7 +118,7 @@ class _Recuento extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
       ),
       child: Row(

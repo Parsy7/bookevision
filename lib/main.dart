@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'config/app_config.dart';
 import 'galerada/g_app.dart';
+import 'galerada/theme/g_colors.dart';
 import 'screens/review_list_screen.dart';
 import 'services/api_service.dart';
 import 'theme/app_theme.dart';
@@ -11,6 +12,7 @@ import 'theme/app_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es', null);
+  if (AppConfig.piel == Piel.galerada) await GColors.cargarCache();
   runApp(switch (AppConfig.piel) {
     Piel.pergamino => const BookeVisionApp(),
     Piel.galerada => const GaleradaApp(),

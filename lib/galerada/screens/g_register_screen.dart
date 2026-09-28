@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
+import '../theme/g_colors.dart';
 import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
 import '../widgets/g_app_bar.dart';
@@ -41,6 +44,9 @@ class _GRegisterScreenState extends State<GRegisterScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+      if (mounted) {
+        await GColors.sincronizarDesdeServidor(context.read<ApiService>());
+      }
       widget.onAuthenticated();
       // GRegisterScreen se abre con Navigator.push encima de GLoginScreen:
       // el nuevo GAuthGate ya está construido por debajo, pero esta pantalla

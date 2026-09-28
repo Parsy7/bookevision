@@ -5,10 +5,14 @@ import 'g_text.dart';
 /// Tema de «Galerada». **Radio 0 en todo** y **sin sombras**: las superficies
 /// se distinguen por borde de 1px de tinta y por fondo, como una prueba de
 /// imprenta. Un solo lugar por componente.
-final ThemeData galeradaTheme = ThemeData(
+///
+/// Función, no constante: los colores dependen del tema activo (`GColors`),
+/// así que hay que recalcularla cada vez que se usa, no una sola vez al
+/// cargar el módulo.
+ThemeData buildGaleradaTheme() => ThemeData(
   useMaterial3: true,
   scaffoldBackgroundColor: GColors.paper,
-  colorScheme: const ColorScheme.light(
+  colorScheme: ColorScheme.light(
     surface: GColors.sheet,
     primary: GColors.ink,
     secondary: GColors.red,
@@ -18,12 +22,12 @@ final ThemeData galeradaTheme = ThemeData(
     onSurface: GColors.ink,
   ),
   // Sin radio y sin elevación en ninguna superficie.
-  dialogTheme: const DialogThemeData(
+  dialogTheme: DialogThemeData(
     backgroundColor: GColors.sheet,
     elevation: 0,
-    shape: RoundedRectangleBorder(),
+    shape: const RoundedRectangleBorder(),
   ),
-  popupMenuTheme: const PopupMenuThemeData(
+  popupMenuTheme: PopupMenuThemeData(
     color: GColors.sheet,
     elevation: 0,
     shape: RoundedRectangleBorder(
@@ -43,15 +47,15 @@ final ThemeData galeradaTheme = ThemeData(
     elevation: 0,
     centerTitle: false,
     titleTextStyle: GText.appBar,
-    iconTheme: const IconThemeData(color: GColors.ink),
+    iconTheme: IconThemeData(color: GColors.ink),
   ),
-  progressIndicatorTheme: const ProgressIndicatorThemeData(
+  progressIndicatorTheme: ProgressIndicatorThemeData(
     color: GColors.ink,
     linearTrackColor: GColors.paper,
   ),
-  textSelectionTheme: const TextSelectionThemeData(
+  textSelectionTheme: TextSelectionThemeData(
     cursorColor: GColors.blue,
-    selectionColor: Color(0x332449D8),
+    selectionColor: const Color(0x332449D8),
     selectionHandleColor: GColors.blue,
   ),
   splashFactory: NoSplash.splashFactory,

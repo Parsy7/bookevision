@@ -38,7 +38,7 @@ class GCardTop extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(
             horizontal: GSpacing.card, vertical: GSpacing.barTop),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
         ),
         child: Row(
@@ -128,7 +128,7 @@ class GBlock extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: kind == GBlockKind.proposal ? GColors.white : null,
-        border: const Border(
+        border: Border(
           top: BorderSide(color: GColors.ink, width: GSpacing.border),
         ),
       ),
@@ -226,7 +226,7 @@ class GSegmented extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
       ),
       child: Row(
@@ -241,7 +241,7 @@ class GSegmented extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: values[i] == selected ? GColors.ink : null,
                     border: i < values.length - 1
-                        ? const Border(
+                        ? Border(
                             right: BorderSide(
                                 color: GColors.ink, width: GSpacing.border))
                         : null,
@@ -269,7 +269,7 @@ class GWarn extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(
             horizontal: GSpacing.card, vertical: GSpacing.blockV),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: GColors.red,
           border: Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
         ),

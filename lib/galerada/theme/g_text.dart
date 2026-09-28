@@ -20,14 +20,14 @@ class GText {
   static TextStyle _serif({
     required double size,
     required double height,
-    Color color = GColors.ink,
+    Color? color,
     FontStyle style = FontStyle.normal,
     double? letterSpacing,
   }) =>
       GoogleFonts.instrumentSerif(
         fontSize: size,
         height: height,
-        color: color,
+        color: color ?? GColors.ink,
         fontStyle: style,
         letterSpacing: letterSpacing,
         fontWeight: FontWeight.w400,
@@ -36,14 +36,14 @@ class GText {
   static TextStyle _read({
     required double size,
     required double height,
-    Color color = GColors.ink,
+    Color? color,
     FontStyle style = FontStyle.normal,
     FontWeight weight = FontWeight.w400,
   }) =>
       GoogleFonts.newsreader(
         fontSize: size,
         height: height,
-        color: color,
+        color: color ?? GColors.ink,
         fontStyle: style,
         fontWeight: weight,
       ).copyWith(inherit: false, textBaseline: TextBaseline.alphabetic);
@@ -51,12 +51,12 @@ class GText {
   static TextStyle _mono({
     required double size,
     required double height,
-    Color color = GColors.ink,
+    Color? color,
   }) =>
       GoogleFonts.jetBrainsMono(
         fontSize: size,
         height: height,
-        color: color,
+        color: color ?? GColors.ink,
         fontWeight: FontWeight.w600,
         letterSpacing: size * 0.08, // .08em
       ).copyWith(inherit: false, textBaseline: TextBaseline.alphabetic);
