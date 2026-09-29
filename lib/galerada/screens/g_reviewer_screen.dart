@@ -215,6 +215,7 @@ class _VistaState extends State<_Vista> {
                       _abrir(GPreviewScreen(
                         title: session.review!.title,
                         text: session.currentText(),
+                        revisionId: session.review!.id,
                         counts: session.counts(),
                       ));
                     case 'sugerencias_ia':

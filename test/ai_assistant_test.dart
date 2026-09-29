@@ -87,6 +87,18 @@ void main() {
       expect(respuesta.seed!['selection'], 'un fragmento del capítulo');
     });
 
+    test('con anclable=false (vista previa) se pregunta pero no hay seed',
+        () async {
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x');
+      c.abrir(seleccion: 'texto ya compuesto', anclable: false);
+      await c.enviar('¿Y esto?');
+      final respuesta = c.messages.last;
+      expect(respuesta.texto, 'Respuesta sobre la selección',
+          reason: 'sigue usando preguntarSeleccion, solo no se puede convertir');
+      expect(respuesta.seed, isNull,
+          reason: 'no se puede anclar en el capítulo original');
+    });
+
     test('sin selección, chat libre no trae seed', () async {
       final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x');
       c.abrir();

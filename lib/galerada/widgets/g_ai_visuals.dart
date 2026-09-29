@@ -76,16 +76,22 @@ class _GAiSparkleState extends State<GAiSparkle>
 /// Halo desenfocado detrás de un botón o burbuja "IA": solo respira en
 /// intensidad, sin girar (el giro de 360° se probó y no convenció).
 class GAiGlow extends StatefulWidget {
-  final double width;
-  final double height;
+  final double? width;
+  final double? height;
   final BorderRadius? radius;
 
   const GAiGlow({super.key, required double size, this.radius})
       : width = size,
         height = size;
 
-  const GAiGlow.pill({super.key, required this.width, required this.height})
-      : radius = const BorderRadius.all(Radius.circular(999));
+  /// Rellena el hueco que le dé su padre (pensado para ir dentro de un
+  /// [Positioned.fill] dentro de un [Stack] cuyo tamaño ya lo pone otro
+  /// hijo) — para cuando ese tamaño no se conoce de antemano, como el ancho
+  /// de una píldora cuyo texto se ajusta a su contenido.
+  const GAiGlow.fill({super.key})
+      : width = null,
+        height = null,
+        radius = const BorderRadius.all(Radius.circular(999));
 
   @override
   State<GAiGlow> createState() => _GAiGlowState();
@@ -105,7 +111,8 @@ class _GAiGlowState extends State<GAiGlow> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final blur = (widget.width < widget.height ? widget.width : widget.height) * 0.45;
+    final w = widget.width, h = widget.height;
+    final blur = w == null || h == null ? 16.0 : (w < h ? w : h) * 0.45;
     return IgnorePointer(
       child: AnimatedBuilder(
         animation: _c,
@@ -142,33 +149,33 @@ class GAiSelectionPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Sin ancho fijo: un tamaño de letra distinto (fuente de verdad en el
+    // móvil vs. la de respaldo en los tests, o el texto agrandado del
+    // sistema) no debe recortar el rótulo — la píldora se ajusta a lo que
+    // ocupe de verdad.
     return GestureDetector(
       onTap: onTap,
-      child: SizedBox(
-        width: 196,
-        height: 44,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            const GAiGlow.pill(width: 196, height: 44),
-            GAiGradientBorder(
-              innerColor: GColors.sheet,
-              child: Container(
-                height: 44,
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const GAiSparkle(size: 16),
-                    const SizedBox(width: 7),
-                    GAiGradientText(label, style: GText.mono.copyWith(fontSize: 10.5)),
-                  ],
-                ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          const Positioned.fill(child: GAiGlow.fill()),
+          GAiGradientBorder(
+            innerColor: GColors.sheet,
+            child: Container(
+              height: 44,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const GAiSparkle(size: 16),
+                  const SizedBox(width: 7),
+                  GAiGradientText(label, style: GText.mono.copyWith(fontSize: 10.5)),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -219,6 +226,26 @@ class GAiGradientText extends StatelessWidget {
     return ShaderMask(
       shaderCallback: (rect) => GAiColors.linear.createShader(rect),
       child: Text(text, style: style.copyWith(color: Colors.white)),
+    );
+  }
+}
+
+/// Coloca el botón "Preguntar a la IA" en un sitio fijo bajo la barra
+/// superior, en vez de perseguir el punto exacto donde el dedo soltó la
+/// selección (no siempre disponible a tiempo). Colocar como hijo de un
+/// [Stack] que envuelva toda la pantalla.
+class GAiSelectionPillOverlay extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const GAiSelectionPillOverlay({super.key, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: 80 + MediaQuery.paddingOf(context).top,
+      left: 0,
+      right: 0,
+      child: Center(child: GAiSelectionPill(onTap: onTap)),
     );
   }
 }

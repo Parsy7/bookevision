@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -9,6 +10,7 @@ import 'package:bookevision/models/answer.dart';
 import 'package:bookevision/models/review.dart';
 import 'package:bookevision/galerada/screens/g_confirm_screen.dart';
 import 'package:bookevision/galerada/screens/g_original_screen.dart';
+import 'package:bookevision/galerada/screens/g_preview_screen.dart';
 import 'package:bookevision/galerada/screens/g_review_list_screen.dart';
 import 'package:bookevision/galerada/screens/g_reviewer_screen.dart';
 import 'package:bookevision/galerada/theme/g_colors.dart';
@@ -291,6 +293,44 @@ void main() {
       expect(borde.left.width, 3);
 
       await tester.pump(const Duration(seconds: 2));
+    });
+  });
+
+  group('vista previa', () {
+    testWidgets(
+        'seleccionar texto pregunta a la IA, pero no ofrece "usar como sugerencia"',
+        (tester) async {
+      await tester.pumpWidget(_app(
+        const GPreviewScreen(
+          title: 'Capítulo',
+          text: 'Una frase cualquiera del capítulo ya compuesto.',
+          revisionId: 'x',
+          counts: Counts(
+              total: 0, done: 0, pending: 0, accepted: 0, originals: 0, custom: 0, omitted: 0, manual: 0),
+        ),
+        ApiFalsa(),
+      ));
+      await tester.pump();
+
+      final area = tester.widget<SelectionArea>(find.byType(SelectionArea));
+      area.onSelectionChanged!(const SelectedContent(plainText: 'frase cualquiera'));
+      await tester.pump();
+
+      expect(find.text('Preguntar a la IA'), findsOneWidget);
+      await tester.tap(find.text('Preguntar a la IA'));
+      await tester.pump();
+
+      expect(find.textContaining('Sobre:'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), '¿Qué te parece?');
+      await tester.tap(find.byIcon(Icons.arrow_upward));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(find.text('Respuesta sobre la selección'), findsOneWidget);
+      expect(find.textContaining('USAR COMO SUGERENCIA'), findsNothing,
+          reason: 'el fragmento viene del texto ya compuesto, no se puede '
+              'anclar de vuelta en el capítulo original');
     });
   });
 

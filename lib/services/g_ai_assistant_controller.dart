@@ -47,13 +47,23 @@ class GAiAssistantController extends ChangeNotifier {
   bool convirtiendo = false;
   bool hayNuevo = false;
 
+  /// Si el fragmento en [seleccionContexto] no es una copia literal del
+  /// capítulo original (p. ej. viene de la vista previa, ya compuesta con
+  /// ediciones aplicadas), "Usar como sugerencia" no puede anclarlo — se
+  /// puede preguntar sobre él igualmente, solo no convertir la respuesta.
+  bool _seleccionAnclable = true;
+
   /// Abre el panel. Con [seleccion], todas las preguntas de esta sesión se
   /// hacen sobre ese fragmento (vía `/ai/preguntar-seleccion`) en vez de
-  /// chat libre.
-  void abrir({String? seleccion}) {
+  /// chat libre. [anclable] en `false` cuando ese fragmento no se puede
+  /// localizar tal cual en el capítulo original (vista previa).
+  void abrir({String? seleccion, bool anclable = true}) {
     mode = GAiAssistantMode.panel;
     hayNuevo = false;
-    if (seleccion != null) seleccionContexto = seleccion;
+    if (seleccion != null) {
+      seleccionContexto = seleccion;
+      _seleccionAnclable = anclable;
+    }
     notifyListeners();
   }
 
@@ -94,7 +104,7 @@ class GAiAssistantController extends ChangeNotifier {
       messages.add(GAiMessage(
         respuesta,
         false,
-        seed: seleccion != null
+        seed: seleccion != null && _seleccionAnclable
             ? {'selection': seleccion, 'question': mensaje, 'answer': respuesta}
             : null,
       ));

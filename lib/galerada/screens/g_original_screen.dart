@@ -77,28 +77,9 @@ class _GOriginalScreenState extends State<GOriginalScreen> {
           ),
         ),
         if (_seleccionPill != null)
-          _PillFlotante(onTap: _abrirDesdePill),
+          GAiSelectionPillOverlay(onTap: _abrirDesdePill),
         GAiAssistantOverlay(controller: _ai),
       ],
-    );
-  }
-}
-
-/// El botón "Preguntar a la IA" flota siempre en el mismo sitio (arriba del
-/// todo, bajo la barra) mientras haya selección — no intenta perseguir el
-/// punto exacto donde el dedo soltó el fragmento, que en la práctica no
-/// siempre está disponible a tiempo.
-class _PillFlotante extends StatelessWidget {
-  final VoidCallback onTap;
-  const _PillFlotante({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      top: 80 + MediaQuery.paddingOf(context).top,
-      left: 0,
-      right: 0,
-      child: Center(child: GAiSelectionPill(onTap: onTap)),
     );
   }
 }
