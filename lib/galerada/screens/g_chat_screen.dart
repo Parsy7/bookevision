@@ -71,87 +71,107 @@ class _GChatScreenState extends State<GChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const GAppBar(title: 'Chat con la IA'),
-      body: Column(
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            Expanded(
+              child: _mensajes.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(GSpacing.page),
+                        child: Text(
+                          'Pregunta lo que sea: ideas, dudas de trama, ayuda '
+                          'con una escena…',
+                          style: GText.reason,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scroll,
+                      padding: const EdgeInsets.all(GSpacing.page),
+                      itemCount: _mensajes.length,
+                      itemBuilder: (_, i) => _Burbuja(mensaje: _mensajes[i]),
+                    ),
+            ),
+            _CampoDeEntrada(
+              controller: _controller,
+              enviando: _enviando,
+              onEnviar: _enviar,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CampoDeEntrada extends StatelessWidget {
+  final TextEditingController controller;
+  final bool enviando;
+  final VoidCallback onEnviar;
+
+  const _CampoDeEntrada({
+    required this.controller,
+    required this.enviando,
+    required this.onEnviar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(GSpacing.page),
+      decoration: BoxDecoration(
+        color: GColors.paper,
+        border: Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
-            child: _mensajes.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(GSpacing.page),
-                      child: Text(
-                        'Pregunta lo que sea: ideas, dudas de trama, ayuda '
-                        'con una escena…',
-                        style: GText.reason,
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  )
-                : ListView.builder(
-                    controller: _scroll,
-                    padding: const EdgeInsets.all(GSpacing.page),
-                    itemCount: _mensajes.length,
-                    itemBuilder: (_, i) => _Burbuja(mensaje: _mensajes[i]),
-                  ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: GSpacing.blockV),
+              decoration: BoxDecoration(
+                color: GColors.white,
+                border: Border.all(color: GColors.ink, width: GSpacing.border),
+              ),
+              child: TextField(
+                controller: controller,
+                style: GText.field,
+                cursorColor: GColors.blue,
+                cursorWidth: GSpacing.caret,
+                minLines: 1,
+                maxLines: 5,
+                textCapitalization: TextCapitalization.sentences,
+                onSubmitted: (_) => onEnviar(),
+                decoration: InputDecoration(
+                  isCollapsed: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  border: InputBorder.none,
+                  hintText: 'Escribe tu mensaje…',
+                  hintStyle: GText.field.copyWith(color: GColors.grey3),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: GSpacing.blockV),
+          InkWell(
+            onTap: enviando ? null : onEnviar,
+            child: Container(
+              width: GSpacing.actionBtn,
+              height: GSpacing.actionBtn,
+              decoration: BoxDecoration(
+                color: enviando ? GColors.grey3 : GColors.ink,
+                border: Border.all(
+                  color: enviando ? GColors.grey3 : GColors.ink,
+                  width: GSpacing.border,
+                ),
+              ),
+              child: Icon(Icons.arrow_upward, color: GColors.onInk),
+            ),
           ),
         ],
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          padding: const EdgeInsets.all(GSpacing.page),
-          decoration: BoxDecoration(
-            color: GColors.paper,
-            border: Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Container(
-                  constraints: const BoxConstraints(minHeight: GSpacing.actionBtn),
-                  padding: const EdgeInsets.symmetric(horizontal: GSpacing.blockV),
-                  decoration: BoxDecoration(
-                    color: GColors.white,
-                    border: Border.all(color: GColors.ink, width: GSpacing.border),
-                  ),
-                  alignment: Alignment.centerLeft,
-                  child: TextField(
-                    controller: _controller,
-                    style: GText.field,
-                    cursorColor: GColors.blue,
-                    cursorWidth: GSpacing.caret,
-                    maxLines: null,
-                    textCapitalization: TextCapitalization.sentences,
-                    onSubmitted: (_) => _enviar(),
-                    decoration: InputDecoration(
-                      isCollapsed: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                      border: InputBorder.none,
-                      hintText: 'Escribe tu mensaje…',
-                      hintStyle: GText.field.copyWith(color: GColors.grey3),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: GSpacing.blockV),
-              InkWell(
-                onTap: _enviando ? null : _enviar,
-                child: Container(
-                  width: GSpacing.actionBtn,
-                  height: GSpacing.actionBtn,
-                  decoration: BoxDecoration(
-                    color: _enviando ? GColors.grey3 : GColors.ink,
-                    border: Border.all(
-                      color: _enviando ? GColors.grey3 : GColors.ink,
-                      width: GSpacing.border,
-                    ),
-                  ),
-                  child: Icon(Icons.arrow_upward, color: GColors.onInk),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

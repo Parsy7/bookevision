@@ -51,6 +51,9 @@ class ApiFalsa extends ApiService {
 
   @override
   Future<void> resetEstado(String id) async {}
+
+  @override
+  Future<String> chat(String mensaje) async => 'Respuesta de mentira';
 }
 
 /// Lista larga, para comprobar qué pasa con el último elemento del scroll.
