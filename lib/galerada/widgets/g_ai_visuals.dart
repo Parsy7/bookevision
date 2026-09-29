@@ -163,7 +163,10 @@ class GAiSelectionPill extends StatelessWidget {
             innerColor: GColors.sheet,
             child: Container(
               height: 44,
-              alignment: Alignment.center,
+              // Sin `alignment`: con él, `Container` envuelve el hijo en un
+              // `Align` que se expande hasta el máximo disponible aunque el
+              // contenido sea pequeño — la píldora acababa ocupando todo el
+              // ancho de la pantalla en vez de ajustarse al texto.
               padding: const EdgeInsets.symmetric(horizontal: 15),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
