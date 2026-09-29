@@ -272,6 +272,14 @@ void main() {
 
       expect(find.text('Hola'), findsOneWidget);
       expect(find.text('Respuesta de mentira'), findsOneWidget);
+      expect(
+        find.ancestor(
+          of: find.text('Respuesta de mentira'),
+          matching: find.byType(SelectableText),
+        ),
+        findsOneWidget,
+        reason: 'el texto de la IA se puede seleccionar con pulsación larga',
+      );
     });
 
     testWidgets('mientras espera la respuesta no se ve el texto todavía',

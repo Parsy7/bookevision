@@ -369,12 +369,17 @@ class _Burbujita extends StatelessWidget {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(right: 22),
-                    child: Text(
+                    // Seleccionable con pulsación larga, como cualquier texto
+                    // nativo — para copiar solo un trozo, no el mensaje entero
+                    // (eso ya lo hace el icono de copiar de al lado).
+                    child: SelectableText(
                       mensaje.texto,
                       style: GText.block.copyWith(
                         fontSize: 14.5,
                         color: mensaje.esError ? GColors.red : null,
                       ),
+                      cursorColor: GColors.blue,
+                      cursorWidth: GSpacing.caret,
                     ),
                   ),
                   Positioned(
