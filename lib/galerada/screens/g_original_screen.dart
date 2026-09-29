@@ -26,7 +26,6 @@ class GOriginalScreen extends StatefulWidget {
 class _GOriginalScreenState extends State<GOriginalScreen> {
   GAiAssistantController? _asistente;
   String? _seleccionPill;
-  Offset? _anchorPill;
 
   GAiAssistantController get _ai => _asistente ??= GAiAssistantController(
         api: context.read<ApiService>(),
@@ -39,19 +38,13 @@ class _GOriginalScreenState extends State<GOriginalScreen> {
     super.dispose();
   }
 
-  void _pedirIa(String seleccion, Offset anchor) {
-    setState(() {
-      _seleccionPill = seleccion;
-      _anchorPill = anchor;
-    });
+  void _seleccionCambia(String seleccion) {
+    setState(() => _seleccionPill = seleccion);
   }
 
   void _ocultarPill() {
     if (_seleccionPill == null) return;
-    setState(() {
-      _seleccionPill = null;
-      _anchorPill = null;
-    });
+    setState(() => _seleccionPill = null);
   }
 
   void _abrirDesdePill() {
@@ -78,38 +71,34 @@ class _GOriginalScreenState extends State<GOriginalScreen> {
             padding: GSpacing.pageScroll(context),
             child: GProseFlow(
               widget.chapter,
-              onPedirIa: _pedirIa,
+              onSeleccionCambia: _seleccionCambia,
               onSeleccionVacia: _ocultarPill,
             ),
           ),
         ),
-        if (_seleccionPill != null && _anchorPill != null)
-          _PillPosicionada(anchor: _anchorPill!, onTap: _abrirDesdePill),
+        if (_seleccionPill != null)
+          _PillFlotante(onTap: _abrirDesdePill),
         GAiAssistantOverlay(controller: _ai),
       ],
     );
   }
 }
 
-/// Coloca el botón "Preguntar a la IA" junto al punto que Flutter habría
-/// usado para el menú nativo de selección, sin salirse de la pantalla.
-class _PillPosicionada extends StatelessWidget {
-  final Offset anchor;
+/// El botón "Preguntar a la IA" flota siempre en el mismo sitio (arriba del
+/// todo, bajo la barra) mientras haya selección — no intenta perseguir el
+/// punto exacto donde el dedo soltó el fragmento, que en la práctica no
+/// siempre está disponible a tiempo.
+class _PillFlotante extends StatelessWidget {
   final VoidCallback onTap;
-  const _PillPosicionada({required this.anchor, required this.onTap});
-
-  static const _width = 196.0;
-  static const _height = 44.0;
+  const _PillFlotante({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final left = (anchor.dx - _width / 2).clamp(8.0, size.width - _width - 8.0);
-    final top = (anchor.dy - _height - 12).clamp(8.0, size.height - _height - 8.0);
     return Positioned(
-      left: left,
-      top: top,
-      child: GAiSelectionPill(onTap: onTap),
+      top: 80 + MediaQuery.paddingOf(context).top,
+      left: 0,
+      right: 0,
+      child: Center(child: GAiSelectionPill(onTap: onTap)),
     );
   }
 }

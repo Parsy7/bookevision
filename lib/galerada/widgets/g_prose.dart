@@ -51,31 +51,31 @@ class GProse extends StatelessWidget {
 /// blanco. Lo usan la vista previa, la confirmación y el capítulo original,
 /// donde no se edita y por tanto partir el texto sale gratis.
 ///
-/// Si se pasa [onPedirIa], el texto se vuelve seleccionable: en vez del menú
-/// nativo, seleccionar un fragmento avisa a quien la use (con el fragmento y
-/// dónde pintar el botón "Preguntar a la IA") para que muestre su propio
-/// botón flotante — el menú nativo de copiar/seleccionar todo se suprime
-/// para no duplicar affordances. Sin `onPedirIa` (vista previa, confirmación)
-/// no hay selección: el texto ahí es la versión ya compuesta, no el capítulo
-/// original literal, así que un fragmento suyo no tiene por qué localizarse
-/// dentro del original para convertirse en sugerencia.
+/// Si se pasa [onSeleccionCambia], el texto se vuelve seleccionable: en vez
+/// del menú nativo, cada cambio de selección avisa a quien la use con el
+/// fragmento elegido, para que muestre su propio botón flotante "Preguntar a
+/// la IA" — el menú nativo de copiar/seleccionar todo se suprime para no
+/// duplicar affordances. La notificación va por `onSelectionChanged`, no por
+/// `contextMenuBuilder`: ese último solo se invoca cuando Flutter decide que
+/// toca *mostrar* el menú (p.ej. al soltar el dedo tras arrastrar), no en
+/// cada cambio, así que depender de él dejaba el botón sin aparecer en buena
+/// parte de los gestos de selección reales. Sin `onSeleccionCambia` (vista
+/// previa, confirmación) no hay selección: el texto ahí es la versión ya
+/// compuesta, no el capítulo original literal, así que un fragmento suyo no
+/// tiene por qué localizarse dentro del original para convertirse en
+/// sugerencia.
 class GProseFlow extends StatefulWidget {
   final String text;
-  final void Function(String seleccion, Offset anchor)? onPedirIa;
+  final void Function(String seleccion)? onSeleccionCambia;
   final VoidCallback? onSeleccionVacia;
 
-  const GProseFlow(this.text, {super.key, this.onPedirIa, this.onSeleccionVacia});
+  const GProseFlow(this.text, {super.key, this.onSeleccionCambia, this.onSeleccionVacia});
 
   @override
   State<GProseFlow> createState() => _GProseFlowState();
 }
 
 class _GProseFlowState extends State<GProseFlow> {
-  // SelectableRegionState no expone el contenido seleccionado por fuera; se
-  // sigue aquí vía `onSelectionChanged` para poder leerlo al mostrar el botón
-  // "Preguntar a la IA".
-  SelectedContent? _seleccionActual;
-
   @override
   Widget build(BuildContext context) {
     final parrafos = widget.text.split(RegExp(r'\n{2,}'))
@@ -90,24 +90,21 @@ class _GProseFlowState extends State<GProseFlow> {
       ],
     );
 
-    final onPedirIa = widget.onPedirIa;
-    if (onPedirIa == null) return columna;
+    final onSeleccionCambia = widget.onSeleccionCambia;
+    if (onSeleccionCambia == null) return columna;
 
     return SelectionArea(
       onSelectionChanged: (content) {
-        _seleccionActual = content;
         final texto = content?.plainText.trim();
-        if (texto == null || texto.isEmpty) widget.onSeleccionVacia?.call();
-      },
-      contextMenuBuilder: (context, selectableRegionState) {
-        final seleccion = _seleccionActual?.plainText.trim();
-        if (seleccion != null && seleccion.isNotEmpty) {
-          onPedirIa(seleccion, selectableRegionState.contextMenuAnchors.primaryAnchor);
+        if (texto == null || texto.isEmpty) {
+          widget.onSeleccionVacia?.call();
+        } else {
+          onSeleccionCambia(texto);
         }
-        // Sin barra nativa: el propio botón flotante "Preguntar a la IA" es
-        // la única affordance sobre la selección.
-        return const SizedBox.shrink();
       },
+      // Sin barra nativa: el propio botón flotante "Preguntar a la IA" es la
+      // única affordance sobre la selección.
+      contextMenuBuilder: (context, selectableRegionState) => const SizedBox.shrink(),
       child: columna,
     );
   }

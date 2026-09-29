@@ -32,9 +32,12 @@ class GAiAssistantOverlay extends StatelessWidget {
               child: _Burbuja(controller: controller),
             );
           case GAiAssistantMode.panel:
+            // El teclado ocupa `viewInsets.bottom`: sin sumarlo aquí, el panel
+            // (y su campo de texto) se queda debajo del teclado al escribir.
+            final teclado = MediaQuery.viewInsetsOf(context).bottom;
             final anchoDisponible = MediaQuery.sizeOf(context).width - 24;
             final ancho = anchoDisponible.clamp(0, 340).toDouble();
-            final altoDisponible = MediaQuery.sizeOf(context).height - 140;
+            final altoDisponible = MediaQuery.sizeOf(context).height - 140 - teclado;
             final alto = controller.panelHeight.clamp(
               GAiAssistantController.minHeight,
               altoDisponible < GAiAssistantController.minHeight
@@ -43,7 +46,7 @@ class GAiAssistantOverlay extends StatelessWidget {
             );
             return Positioned(
               right: 12,
-              bottom: 12 + bottomSafe,
+              bottom: 12 + bottomSafe + teclado,
               child: SizedBox(
                 width: ancho,
                 height: alto,
@@ -127,8 +130,10 @@ class _PanelState extends State<_Panel> {
     final texto = _controller.text;
     if (texto.trim().isEmpty) return;
     _controller.clear();
-    await widget.controller.enviar(texto);
-    _scrollAlFinal();
+    final envio = widget.controller.enviar(texto);
+    _scrollAlFinal(); // deja ver el mensaje propio y el "escribiendo…" ya mismo
+    await envio;
+    _scrollAlFinal(); // y de nuevo al llegar la respuesta, por si la lista creció
   }
 
   Future<void> _copiar(String texto) async {
@@ -211,7 +216,7 @@ class _PanelState extends State<_Panel> {
               ),
             ),
           Expanded(
-            child: c.messages.isEmpty
+            child: c.messages.isEmpty && !c.enviando
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(GSpacing.page),
@@ -225,13 +230,17 @@ class _PanelState extends State<_Panel> {
                 : ListView.builder(
                     controller: _scroll,
                     padding: const EdgeInsets.all(GSpacing.blockV),
-                    itemCount: c.messages.length,
-                    itemBuilder: (_, i) => _Burbujita(
-                      mensaje: c.messages[i],
-                      onCopiar: () => _copiar(c.messages[i].texto),
-                      onConvertir: () => _convertir(c.messages[i]),
-                      convirtiendo: c.convirtiendo,
-                    ),
+                    itemCount: c.messages.length + (c.enviando ? 1 : 0),
+                    itemBuilder: (_, i) {
+                      if (i == c.messages.length) return const _BurbujaEscribiendo();
+                      final mensaje = c.messages[i];
+                      return _Burbujita(
+                        mensaje: mensaje,
+                        onCopiar: () => _copiar(mensaje.texto),
+                        onConvertir: () => _convertir(mensaje),
+                        convirtiendo: c.convirtiendo,
+                      );
+                    },
                   ),
           ),
           Container(
@@ -363,6 +372,64 @@ class _Burbujita extends StatelessWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bocadillo de "la IA está escribiendo": tres puntos que se van iluminando
+/// en cadena, mientras se espera la respuesta.
+class _BurbujaEscribiendo extends StatefulWidget {
+  const _BurbujaEscribiendo();
+
+  @override
+  State<_BurbujaEscribiendo> createState() => _BurbujaEscribiendoState();
+}
+
+class _BurbujaEscribiendoState extends State<_BurbujaEscribiendo>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: GSpacing.gapSm),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        decoration: BoxDecoration(color: GColors.white, border: Border.all(color: GColors.ink, width: GSpacing.border)),
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (context, _) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(3, (i) {
+                final fase = ((_c.value - i * 0.22) % 1.0 + 1.0) % 1.0;
+                final opacidad = 0.25 + 0.75 * (1 - (fase * 2 - 1).abs()).clamp(0.0, 1.0);
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2.5),
+                  child: Opacity(
+                    opacity: opacidad,
+                    child: Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: GColors.grey2),
+                    ),
+                  ),
+                );
+              }),
+            );
+          },
         ),
       ),
     );

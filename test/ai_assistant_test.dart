@@ -10,6 +10,14 @@ import 'package:bookevision/services/g_ai_assistant_controller.dart';
 
 import 'soporte.dart';
 
+class _ApiLenta extends ApiFalsa {
+  @override
+  Future<String> chat(String mensaje) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    return 'Tras pensarlo';
+  }
+}
+
 void main() {
   setUp(() => GoogleFonts.config.allowRuntimeFetching = false);
 
@@ -128,6 +136,25 @@ void main() {
 
       expect(find.text('Hola'), findsOneWidget);
       expect(find.text('Respuesta de mentira'), findsOneWidget);
+    });
+
+    testWidgets('mientras espera la respuesta no se ve el texto todavía',
+        (tester) async {
+      final api = _ApiLenta();
+      final c = GAiAssistantController(api: api, revisionId: 'x')..abrir();
+      await abrir(tester, c, api);
+
+      await tester.enterText(find.byType(TextField), 'Hola');
+      await tester.tap(find.byIcon(Icons.arrow_upward));
+      await tester.pump();
+
+      expect(c.enviando, isTrue);
+      expect(find.text('Tras pensarlo'), findsNothing);
+
+      await tester.pump(const Duration(milliseconds: 600));
+
+      expect(c.enviando, isFalse);
+      expect(find.text('Tras pensarlo'), findsOneWidget);
     });
 
     testWidgets('minimizar vuelve a mostrar la burbuja', (tester) async {
