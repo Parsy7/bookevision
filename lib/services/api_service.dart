@@ -179,7 +179,19 @@ class ApiService {
 
   void _checkOk(http.Response res) {
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw Exception('Error API (${res.statusCode}): ${res.body}');
+      throw Exception('${_mensajeError(res.body)} (${res.statusCode})');
     }
+  }
+
+  /// El backend siempre manda `{"error": "..."}` en las respuestas de fallo;
+  /// si por lo que sea no viene así, se cae al cuerpo crudo antes que a nada.
+  String _mensajeError(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map && decoded['error'] is String) return decoded['error'] as String;
+    } catch (_) {
+      // No era JSON: se usa el cuerpo tal cual.
+    }
+    return body;
   }
 }
