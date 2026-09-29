@@ -129,13 +129,11 @@ class ReviewController {
             echo json_encode(['error' => 'JSON no válido: falta chapter o suggestions']);
             return;
         }
-        foreach ($review['suggestions'] as $s) {
-            $t = $s['type'] ?? null;
-            if ($t !== 'replace' && $t !== 'insert') {
-                http_response_code(400);
-                echo json_encode(['error' => 'Cada sugerencia debe ser type replace o insert']);
-                return;
-            }
+        $errorValidacion = SuggestionValidator::validar($review['suggestions']);
+        if ($errorValidacion !== null) {
+            http_response_code(400);
+            echo json_encode(['error' => $errorValidacion]);
+            return;
         }
 
         $id = (string)($review['id'] ?? '');
@@ -166,45 +164,7 @@ class ReviewController {
                 'chapter' => $review['chapter'],
             ]);
 
-            $insSug = $pdo->prepare(
-                'INSERT INTO sugerencias
-                   (revision_id, orden, type, title, location, reason,
-                    original, proposed, anchor, insert_mode, previous, next)
-                 VALUES
-                   (:revision_id, :orden, :type, :title, :location, :reason,
-                    :original, :proposed, :anchor, :insert_mode, :previous, :next)'
-            );
-            $insAns = $pdo->prepare(
-                'INSERT INTO respuestas (revision_id, orden, choice, custom, insert_position)
-                 VALUES (:revision_id, :orden, :choice, :custom, :insert_position)'
-            );
-
-            foreach ($review['suggestions'] as $i => $s) {
-                $type = $s['type'];
-                $insSug->execute([
-                    'revision_id' => $id,
-                    'orden'       => $i,
-                    'type'        => $type,
-                    'title'       => $s['title'] ?? null,
-                    'location'    => $s['location'] ?? null,
-                    'reason'      => $s['reason'] ?? null,
-                    'original'    => $s['original'] ?? null,
-                    'proposed'    => $s['proposed'] ?? null,
-                    'anchor'      => $s['anchor'] ?? null,
-                    'insert_mode' => in_array($s['insert'] ?? null, ['before','after'], true)
-                                        ? $s['insert'] : null,
-                    'previous'    => $s['previous'] ?? null,
-                    'next'        => $s['next'] ?? null,
-                ]);
-                // Respuesta inicial vacía (choice null; insert_position 'between' en inserciones).
-                $insAns->execute([
-                    'revision_id'     => $id,
-                    'orden'           => $i,
-                    'choice'          => null,
-                    'custom'          => null,
-                    'insert_position' => $type === 'insert' ? 'between' : null,
-                ]);
-            }
+            SuggestionValidator::insertar($pdo, $id, $review['suggestions']);
 
             // Si venía un estado guardado, lo aplicamos encima.
             if ($isState) {

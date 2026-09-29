@@ -12,6 +12,14 @@ define('DB_PASS', 'CAMBIA_ESTA_CONTRASENA');
 // Genera una cadena larga al azar y no la compartas.
 define('SCRIPT_SECRET', '');
 
+// Clave de Google AI Studio (https://aistudio.google.com) para el asistente
+// de IA. Nunca se manda al cliente Flutter: todas las llamadas a Gemini
+// pasan por aquí, en el servidor.
+define('GEMINI_API_KEY', '');
+// Alias de Google que apunta siempre al Flash estable más reciente, para no
+// tener que tocar código cada vez que retiran una versión.
+define('GEMINI_MODEL', 'gemini-flash-latest');
+
 function get_pdo(): PDO {
     static $pdo = null;
     if ($pdo === null) {

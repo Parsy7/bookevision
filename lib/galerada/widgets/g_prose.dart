@@ -7,6 +7,7 @@ import '../../services/review_session.dart';
 import '../theme/g_colors.dart';
 import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
+import 'g_ai_ask_sheet.dart';
 import 'g_bits.dart';
 
 /// Acciones del bloque que se está editando, para que la pantalla las pinte en
@@ -50,16 +51,34 @@ class GProse extends StatelessWidget {
 /// Capítulo entero de solo lectura, con un párrafo numerado por línea en
 /// blanco. Lo usan la vista previa, la confirmación y el capítulo original,
 /// donde no se edita y por tanto partir el texto sale gratis.
-class GProseFlow extends StatelessWidget {
+///
+/// Si se pasa [revisionId], el texto se vuelve seleccionable y el menú de
+/// selección nativo gana "Preguntar a la IA" sobre el fragmento elegido. Sin
+/// `revisionId` (vista previa, confirmación) no hay selección: el texto ahí
+/// es la versión ya compuesta, no el capítulo original literal, así que un
+/// fragmento suyo no tiene por qué localizarse dentro del original para
+/// convertirse en sugerencia.
+class GProseFlow extends StatefulWidget {
   final String text;
+  final String? revisionId;
 
-  const GProseFlow(this.text, {super.key});
+  const GProseFlow(this.text, {super.key, this.revisionId});
+
+  @override
+  State<GProseFlow> createState() => _GProseFlowState();
+}
+
+class _GProseFlowState extends State<GProseFlow> {
+  // SelectableRegionState no expone el contenido seleccionado por fuera; se
+  // seguimos aquí vía `onSelectionChanged` para poder leerlo al pulsar
+  // "Preguntar a la IA" en el menú de selección.
+  SelectedContent? _seleccionActual;
 
   @override
   Widget build(BuildContext context) {
-    final parrafos = text.split(RegExp(r'\n{2,}'))
+    final parrafos = widget.text.split(RegExp(r'\n{2,}'))
       ..removeWhere((p) => p.trim().isEmpty);
-    return Column(
+    final columna = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (var i = 0; i < parrafos.length; i++) ...[
@@ -67,6 +86,30 @@ class GProseFlow extends StatelessWidget {
           GProse(parrafos[i], number: i + 1),
         ],
       ],
+    );
+
+    final revisionId = widget.revisionId;
+    if (revisionId == null) return columna;
+
+    return SelectionArea(
+      onSelectionChanged: (content) => _seleccionActual = content,
+      contextMenuBuilder: (context, selectableRegionState) {
+        final items = selectableRegionState.contextMenuButtonItems.toList();
+        items.add(ContextMenuButtonItem(
+          label: 'Preguntar a la IA',
+          onPressed: () {
+            final seleccion = _seleccionActual?.plainText.trim();
+            selectableRegionState.hideToolbar();
+            if (seleccion == null || seleccion.isEmpty) return;
+            GAiAskSheet.show(context, seleccion: seleccion, revisionId: revisionId);
+          },
+        ));
+        return AdaptiveTextSelectionToolbar.buttonItems(
+          anchors: selectableRegionState.contextMenuAnchors,
+          buttonItems: items,
+        );
+      },
+      child: columna,
     );
   }
 }

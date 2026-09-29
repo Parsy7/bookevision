@@ -16,6 +16,9 @@ require_once __DIR__ . '/controllers/LibroController.php';
 require_once __DIR__ . '/controllers/TemaController.php';
 require_once __DIR__ . '/controllers/ReviewController.php';
 require_once __DIR__ . '/controllers/StateController.php';
+require_once __DIR__ . '/SuggestionValidator.php';
+require_once __DIR__ . '/GeminiClient.php';
+require_once __DIR__ . '/controllers/AiController.php';
 
 // Router simple basado en PATH_INFO:
 //   /api/index.php/auth/{register|login|logout|me}
@@ -25,6 +28,8 @@ require_once __DIR__ . '/controllers/StateController.php';
 //   /api/index.php/revisiones
 //   /api/index.php/revisiones/{id}
 //   /api/index.php/revisiones/{id}/estado
+//   /api/index.php/revisiones/{id}/ia-sugerencias
+//   /api/index.php/ai/{chat|preguntar-seleccion}
 $path = $_SERVER['PATH_INFO'] ?? '/';
 $segments = array_values(array_filter(explode('/', $path)));
 $resource = $segments[0] ?? '';
@@ -49,9 +54,14 @@ try {
         case 'revisiones':
             if ($action === 'estado') {
                 (new StateController())->handle($method, $id, $userId);
+            } elseif ($action === 'ia-sugerencias') {
+                (new AiController())->generarSugerencias($method, $id, $userId);
             } else {
                 (new ReviewController())->handle($method, $id, $userId);
             }
+            break;
+        case 'ai':
+            (new AiController())->handle($method, $id, $userId);
             break;
         default:
             http_response_code(404);

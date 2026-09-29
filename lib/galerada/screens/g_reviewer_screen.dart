@@ -15,6 +15,7 @@ import '../widgets/g_foot.dart';
 import '../widgets/g_paragraphs.dart';
 import '../widgets/g_prose.dart';
 import '../widgets/g_suggestion_card.dart';
+import 'g_chat_screen.dart';
 import 'g_confirm_screen.dart';
 import 'g_original_screen.dart';
 import 'g_preview_screen.dart';
@@ -49,6 +50,7 @@ class _VistaState extends State<_Vista> {
   final Map<int, GlobalKey> _cardKeys = {};
   int _lastFocused = -1;
   GProseEditActions? _edicion;
+  bool _generandoIA = false;
 
   void _ensurePieces(Review r) {
     if (_piecesForId == r.id && _pieces != null) return;
@@ -112,6 +114,32 @@ class _VistaState extends State<_Vista> {
     if (ok == true) await s.reset();
   }
 
+  void _snack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg.toUpperCase(),
+            style: GText.mono.copyWith(color: GColors.onInk)),
+      ),
+    );
+  }
+
+  Future<void> _generarSugerenciasIA(ReviewSession session) async {
+    if (_generandoIA) return;
+    final id = session.review!.id;
+    setState(() => _generandoIA = true);
+    _snack('Generando sugerencias…');
+    try {
+      await context.read<ApiService>().generarSugerencias(id);
+      if (!mounted) return;
+      await session.load(id);
+    } catch (e) {
+      if (!mounted) return;
+      _snack('No se pudo generar: $e');
+    } finally {
+      if (mounted) setState(() => _generandoIA = false);
+    }
+  }
+
   void _abrir(Widget pantalla) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => pantalla));
   }
@@ -147,6 +175,14 @@ class _VistaState extends State<_Vista> {
                       icon: Icons.menu_book,
                       value: 'original'),
                   GMenuItem(
+                      label: 'Chat con la IA',
+                      icon: Icons.chat_bubble_outline,
+                      value: 'chat_ia'),
+                  GMenuItem(
+                      label: 'Generar sugerencias con IA',
+                      icon: Icons.auto_awesome,
+                      value: 'sugerencias_ia'),
+                  GMenuItem(
                       label: 'Borrar decisiones',
                       icon: Icons.restart_alt,
                       value: 'reset',
@@ -160,11 +196,18 @@ class _VistaState extends State<_Vista> {
                         text: session.currentText(),
                         counts: session.counts(),
                       ));
+                    case 'chat_ia':
+                      _abrir(const GChatScreen());
+                    case 'sugerencias_ia':
+                      _generarSugerenciasIA(session);
                     case 'export':
                       ExportMd.share(session.review!.title, 'avance',
                           session.currentText());
                     case 'original':
-                      _abrir(GOriginalScreen(chapter: session.review!.chapter));
+                      _abrir(GOriginalScreen(
+                        chapter: session.review!.chapter,
+                        revisionId: session.review!.id,
+                      ));
                     case 'reset':
                       _reset(session);
                   }

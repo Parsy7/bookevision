@@ -353,7 +353,7 @@ void main() {
         .join('\n\n');
     await tester.pumpWidget(MaterialApp(
       theme: buildGaleradaTheme(),
-      home: GOriginalScreen(chapter: capitulo),
+      home: GOriginalScreen(chapter: capitulo, revisionId: 'x'),
     ));
     await tester.pump();
 

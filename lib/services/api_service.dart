@@ -135,6 +135,48 @@ class ApiService {
     _checkOk(res);
   }
 
+  // ---------- Asistente de IA ----------
+
+  Future<String> chat(String mensaje) async {
+    final res = await http.post(
+      _u('/ai/chat'),
+      headers: await _headers,
+      body: jsonEncode({'mensaje': mensaje}),
+    );
+    _checkOk(res);
+    return (jsonDecode(res.body) as Map<String, dynamic>)['respuesta'] as String;
+  }
+
+  Future<String> preguntarSeleccion(String seleccion, String pregunta) async {
+    final res = await http.post(
+      _u('/ai/preguntar-seleccion'),
+      headers: await _headers,
+      body: jsonEncode({'seleccion': seleccion, 'pregunta': pregunta}),
+    );
+    _checkOk(res);
+    return (jsonDecode(res.body) as Map<String, dynamic>)['respuesta'] as String;
+  }
+
+  /// Pide a la IA sugerencias de edición para un capítulo y las añade a la
+  /// revisión. `seed` (opcional) convierte una pregunta+respuesta sobre un
+  /// fragmento seleccionado en una sugerencia concreta.
+  Future<Review> generarSugerencias(
+    String revisionId, {
+    String? instruccion,
+    Map<String, dynamic>? seed,
+  }) async {
+    final res = await http.post(
+      _u('/revisiones/$revisionId/ia-sugerencias'),
+      headers: await _headers,
+      body: jsonEncode({
+        if (instruccion != null) 'instruccion': instruccion,
+        if (seed != null) 'seed': seed,
+      }),
+    );
+    _checkOk(res);
+    return Review.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
   void _checkOk(http.Response res) {
     if (res.statusCode < 200 || res.statusCode >= 300) {
       throw Exception('Error API (${res.statusCode}): ${res.body}');

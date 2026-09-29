@@ -7,7 +7,8 @@ import '../widgets/g_prose.dart';
 /// Capítulo original, solo lectura. El sello lo deja claro en la barra.
 class GOriginalScreen extends StatelessWidget {
   final String chapter;
-  const GOriginalScreen({super.key, required this.chapter});
+  final String revisionId;
+  const GOriginalScreen({super.key, required this.chapter, required this.revisionId});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +23,7 @@ class GOriginalScreen extends StatelessWidget {
       // menú de gestos o de los 3 botones del sistema.
       body: SingleChildScrollView(
         padding: GSpacing.pageScroll(context),
-        child: GProseFlow(chapter),
+        child: GProseFlow(chapter, revisionId: revisionId),
       ),
     );
   }
