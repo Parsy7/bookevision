@@ -240,7 +240,8 @@ class _VistaState extends State<_Vista> {
         bottomNavigationBar:
             session.loadStatus == LoadStatus.ready ? _barra(session) : null,
           ),
-          if (ai != null) GAiAssistantOverlay(controller: ai),
+          if (ai != null)
+            GAiAssistantOverlay(controller: ai, extraBottomOffset: GSpacing.foot),
         ],
       ),
     );

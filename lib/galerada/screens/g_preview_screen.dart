@@ -114,7 +114,7 @@ class _GPreviewScreenState extends State<GPreviewScreen> {
         ),
         if (_seleccionPill != null)
           GAiSelectionPillOverlay(onTap: _abrirDesdePill),
-        GAiAssistantOverlay(controller: _ai),
+        GAiAssistantOverlay(controller: _ai, extraBottomOffset: GSpacing.foot),
       ],
     );
   }

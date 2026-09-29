@@ -296,6 +296,21 @@ void main() {
     });
   });
 
+  group('asistente flotante', () {
+    testWidgets('la burbuja no tapa la barra de navegación del lector',
+        (tester) async {
+      await tester.pumpWidget(
+          _app(const GReviewerScreen(reviewId: 'doc'), ApiFalsa(_documentoLargo())));
+      await _asentar(tester);
+
+      final barra = tester.getRect(find.byType(GFoot));
+      final burbuja = tester.getRect(find.byIcon(Icons.auto_awesome));
+
+      expect(burbuja.bottom, lessThanOrEqualTo(barra.top),
+          reason: 'la burbuja debe flotar por encima de la barra, no sobre ella');
+    });
+  });
+
   group('vista previa', () {
     testWidgets(
         'seleccionar texto pregunta a la IA, pero no ofrece "usar como sugerencia"',

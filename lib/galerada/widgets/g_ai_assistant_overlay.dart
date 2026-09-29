@@ -14,21 +14,30 @@ import 'g_bits.dart';
 class GAiAssistantOverlay extends StatelessWidget {
   final GAiAssistantController controller;
 
-  const GAiAssistantOverlay({super.key, required this.controller});
+  /// Alto de lo que ya ocupe la esquina inferior derecha en esa pantalla
+  /// (la barra de navegación del lector, p. ej. `GSpacing.foot`), para que
+  /// la burbuja y el panel floten por encima en vez de taparla.
+  final double extraBottomOffset;
+
+  const GAiAssistantOverlay({
+    super.key,
+    required this.controller,
+    this.extraBottomOffset = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
-        final bottomSafe = MediaQuery.paddingOf(context).bottom;
+        final bottomSafe = MediaQuery.paddingOf(context).bottom + extraBottomOffset;
         switch (controller.mode) {
           case GAiAssistantMode.hidden:
             return const SizedBox.shrink();
           case GAiAssistantMode.bubble:
             return Positioned(
-              right: 16,
-              bottom: 16 + bottomSafe,
+              right: 12,
+              bottom: 12 + bottomSafe,
               // `Material` porque este widget vive fuera del Scaffold (como
               // hermano suyo en el Stack de la pantalla): sin esto, cualquier
               // InkWell de dentro no encuentra ancestro y revienta.
@@ -43,7 +52,7 @@ class GAiAssistantOverlay extends StatelessWidget {
             final teclado = MediaQuery.viewInsetsOf(context).bottom;
             final anchoDisponible = MediaQuery.sizeOf(context).width - 24;
             final ancho = anchoDisponible.clamp(0, 340).toDouble();
-            final altoDisponible = MediaQuery.sizeOf(context).height - 140 - teclado;
+            final altoDisponible = MediaQuery.sizeOf(context).height - 140 - teclado - extraBottomOffset;
             final alto = controller.panelHeight.clamp(
               GAiAssistantController.minHeight,
               altoDisponible < GAiAssistantController.minHeight
@@ -69,6 +78,10 @@ class GAiAssistantOverlay extends StatelessWidget {
 }
 
 class _Burbuja extends StatelessWidget {
+  // 52dp: el mismo alto que GSpacing.actionBtn — pequeña pero sigue siendo
+  // un objetivo táctil cómodo, y molesta menos en la esquina.
+  static const _tamano = 52.0;
+
   final GAiAssistantController controller;
   const _Burbuja({required this.controller});
 
@@ -77,20 +90,20 @@ class _Burbuja extends StatelessWidget {
     return GestureDetector(
       onTap: () => controller.abrir(),
       child: SizedBox(
-        width: 64,
-        height: 64,
+        width: _tamano,
+        height: _tamano,
         child: Stack(
           alignment: Alignment.center,
           children: [
-            const GAiGlow(size: 64),
-            const GAiOrb(size: 60),
+            const GAiGlow(size: _tamano),
+            const GAiOrb(size: _tamano - 4),
             if (controller.hayNuevo)
               Positioned(
-                top: 2,
-                right: 2,
+                top: 1,
+                right: 1,
                 child: Container(
-                  width: 14,
-                  height: 14,
+                  width: 12,
+                  height: 12,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: GColors.red,
