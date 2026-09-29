@@ -136,6 +136,10 @@ class GProseBlock extends StatefulWidget {
   final void Function(GProseEditActions acciones, {required bool activa})?
       onEditing;
 
+  /// Con esto puesto, arrastrar el dedo tras la pulsación larga selecciona
+  /// texto (en vez de entrar en edición) y avisa con el fragmento elegido.
+  final void Function(String seleccion)? onPedirIa;
+
   const GProseBlock({
     super.key,
     required this.text,
@@ -143,6 +147,7 @@ class GProseBlock extends StatefulWidget {
     required this.end,
     this.number,
     this.onEditing,
+    this.onPedirIa,
   });
 
   @override
@@ -150,12 +155,22 @@ class GProseBlock extends StatefulWidget {
 }
 
 class _GProseBlockState extends State<GProseBlock> {
+  /// Cuánto tiene que moverse el dedo tras la pulsación larga para que
+  /// cuente como "seleccionar texto" en vez de "entrar a editar". Por debajo,
+  /// aunque haya temblado un poco, sigue siendo una pulsación larga normal.
+  static const _umbralArrastre = 8.0;
+
   bool _editing = false;
   bool _showingOriginal = false;
   final _controller = TextEditingController();
   final _focus = FocusNode();
   final _textKey = GlobalKey();
   GProseEditActions? _acciones;
+
+  Offset? _inicioPulsacion;
+  int? _inicioSeleccion;
+  int? _finSeleccion;
+  bool _seleccionando = false;
 
   TextStyle get _style => GText.prose;
   StrutStyle get _strut =>
@@ -185,6 +200,54 @@ class _GProseBlockState extends State<GProseBlock> {
       );
     }
     return 0;
+  }
+
+  void _onLongPressStart(Offset globalPosition) {
+    _inicioPulsacion = globalPosition;
+    _inicioSeleccion = null;
+    _finSeleccion = null;
+    _seleccionando = false;
+  }
+
+  /// Si el dedo se mueve más que el umbral, esto deja de ser "pulsación larga
+  /// para editar" y pasa a ser "arrastre para seleccionar": se resalta en
+  /// vivo el fragmento entre el punto de partida y el dedo actual.
+  void _onLongPressMoveUpdate(Offset globalPosition, String mostrado) {
+    final inicio = _inicioPulsacion;
+    if (inicio == null) return;
+
+    if (!_seleccionando) {
+      if ((globalPosition - inicio).distance < _umbralArrastre) return;
+      HapticFeedback.selectionClick();
+      setState(() {
+        _seleccionando = true;
+        _inicioSeleccion = _caretAt(inicio, mostrado);
+        _finSeleccion = _caretAt(globalPosition, mostrado);
+      });
+      return;
+    }
+    setState(() => _finSeleccion = _caretAt(globalPosition, mostrado));
+  }
+
+  void _onLongPressEnd(ManualEdit? edit, String mostrado) {
+    if (_seleccionando) {
+      final ini = _inicioSeleccion, fin = _finSeleccion;
+      setState(() {
+        _seleccionando = false;
+        _inicioSeleccion = null;
+        _finSeleccion = null;
+      });
+      _inicioPulsacion = null;
+      if (ini == null || fin == null) return;
+      final desde = ini < fin ? ini : fin;
+      final hasta = ini < fin ? fin : ini;
+      final fragmento = mostrado.substring(desde, hasta).trim();
+      if (fragmento.isNotEmpty) widget.onPedirIa?.call(fragmento);
+      return;
+    }
+    final inicio = _inicioPulsacion;
+    _inicioPulsacion = null;
+    if (inicio != null) _startEdit(edit, inicio);
   }
 
   void _startEdit(ManualEdit? edit, Offset globalPosition) {
@@ -296,13 +359,43 @@ class _GProseBlockState extends State<GProseBlock> {
   Widget _lectura(ManualEdit? edit, String mostrado) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onLongPressStart: (d) => _startEdit(edit, d.globalPosition),
+      onLongPressStart: (d) => _onLongPressStart(d.globalPosition),
+      onLongPressMoveUpdate: (d) => _onLongPressMoveUpdate(d.globalPosition, mostrado),
+      onLongPressEnd: (_) => _onLongPressEnd(edit, mostrado),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.only(right: GSpacing.caretGutter),
-        child: Text(mostrado,
-            key: _textKey, style: _style, strutStyle: _strut),
+        child: _seleccionando
+            ? _textoResaltado(mostrado)
+            : Text(mostrado, key: _textKey, style: _style, strutStyle: _strut),
       ),
+    );
+  }
+
+  /// El mismo texto que `_lectura`, pero con el tramo entre el inicio y el
+  /// dedo actual resaltado — sin tocar el estilo base ni el strut, para no
+  /// recomponer la línea bajo el dedo mientras se arrastra.
+  Widget _textoResaltado(String mostrado) {
+    final ini = _inicioSeleccion, fin = _finSeleccion;
+    if (ini == null || fin == null) {
+      return Text(mostrado, key: _textKey, style: _style, strutStyle: _strut);
+    }
+    final desde = ini < fin ? ini : fin;
+    final hasta = ini < fin ? fin : ini;
+    return Text.rich(
+      TextSpan(
+        style: _style,
+        children: [
+          TextSpan(text: mostrado.substring(0, desde)),
+          TextSpan(
+            text: mostrado.substring(desde, hasta),
+            style: TextStyle(backgroundColor: GColors.blue.withValues(alpha: 0.22)),
+          ),
+          TextSpan(text: mostrado.substring(hasta)),
+        ],
+      ),
+      key: _textKey,
+      strutStyle: _strut,
     );
   }
 

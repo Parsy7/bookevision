@@ -169,6 +169,7 @@ class _VistaState extends State<_Vista> {
   @override
   Widget build(BuildContext context) {
     final session = context.watch<ReviewSession>();
+    final ai = session.loadStatus == LoadStatus.ready ? _aiPara(session) : null;
 
     return PopScope(
       canPop: true,
@@ -234,18 +235,17 @@ class _VistaState extends State<_Vista> {
             ],
           ],
         ),
-        body: _cuerpo(session),
+        body: _cuerpo(session, ai),
         bottomNavigationBar:
             session.loadStatus == LoadStatus.ready ? _barra(session) : null,
           ),
-          if (session.loadStatus == LoadStatus.ready)
-            GAiAssistantOverlay(controller: _aiPara(session)),
+          if (ai != null) GAiAssistantOverlay(controller: ai),
         ],
       ),
     );
   }
 
-  Widget _cuerpo(ReviewSession session) {
+  Widget _cuerpo(ReviewSession session, GAiAssistantController? ai) {
     switch (session.loadStatus) {
       case LoadStatus.idle:
       case LoadStatus.loading:
@@ -281,7 +281,7 @@ class _VistaState extends State<_Vista> {
                   children: [
                     for (var i = 0; i < _pieces!.length; i++) ...[
                       if (i > 0) const SizedBox(height: GSpacing.gap),
-                      _pieza(_pieces![i], chapter),
+                      _pieza(_pieces![i], chapter, ai),
                     ],
                   ],
                 ),
@@ -295,7 +295,7 @@ class _VistaState extends State<_Vista> {
   /// En «Galerada» el original tachado y el contexto de una inserción viven
   /// **dentro** de la tarjeta, así que el fragmento afectado y el marcador de
   /// inserción del lector anterior ya no se pintan sueltos.
-  Widget _pieza(ReaderPiece p, String chapter) {
+  Widget _pieza(ReaderPiece p, String chapter, GAiAssistantController? ai) {
     switch (p) {
       case ProsePiece():
         return GProseBlock(
@@ -305,6 +305,7 @@ class _VistaState extends State<_Vista> {
           end: p.end,
           number: GParagraphs.at(chapter, p.start),
           onEditing: _cambioEdicion,
+          onPedirIa: ai == null ? null : (seleccion) => ai.abrir(seleccion: seleccion),
         );
       case AffectedPiece():
       case InsertMarkerPiece():

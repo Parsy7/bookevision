@@ -35,6 +35,18 @@ Review _documento() => const Review(
       suggestions: [],
     );
 
+/// Un párrafo largo de una sola línea (sin saltos), para que arrastrar el
+/// dedo tenga sitio de sobra dentro de la misma línea envuelta, sin caer
+/// cerca del final corto de un título como en `_documento()`.
+Review _documentoLargo() => const Review(
+      id: 'doc',
+      format: 'la-jaula-rota-review-v4',
+      title: 'Uno',
+      chapter: 'Una frase bastante larga para que el arrastre del dedo tenga '
+          'sitio de sobra donde recorrer sin salirse de la línea visible.',
+      suggestions: [],
+    );
+
 Widget _app(Widget home, ApiService api) => Provider<ApiService>.value(
       value: api,
       child: MaterialApp(theme: buildGaleradaTheme(), home: home),
@@ -196,6 +208,32 @@ void main() {
           reason: 'entrar a editar no mueve el bloque');
       expect(find.text('Guardar'), findsOneWidget,
           reason: 'las acciones van en la barra fija, no dentro del bloque');
+
+      await tester.pump(const Duration(seconds: 2));
+    });
+
+    testWidgets(
+        'arrastrar tras la pulsación larga selecciona en vez de editar y abre la IA',
+        (tester) async {
+      await tester.pumpWidget(
+          _app(const GReviewerScreen(reviewId: 'doc'), ApiFalsa(_documentoLargo())));
+      await _asentar(tester);
+
+      final caja = tester.getRect(find.byType(GProseBlock));
+      final inicio = Offset(caja.left + 40, caja.top + 20);
+      final fin = Offset(caja.left + 300, caja.top + 20);
+
+      final gesto = await tester.startGesture(inicio);
+      await tester.pump(const Duration(milliseconds: 600)); // supera el umbral de pulsación larga
+      await gesto.moveTo(fin);
+      await tester.pump();
+      await gesto.up();
+      await tester.pump();
+
+      expect(find.text('Guardar'), findsNothing,
+          reason: 'arrastrar tras la pulsación larga selecciona, no edita el bloque');
+      expect(find.textContaining('Sobre:'), findsOneWidget,
+          reason: 'el panel de la IA se abre con el fragmento arrastrado como contexto');
 
       await tester.pump(const Duration(seconds: 2));
     });

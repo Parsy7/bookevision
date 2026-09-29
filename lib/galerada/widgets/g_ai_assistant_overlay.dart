@@ -29,7 +29,13 @@ class GAiAssistantOverlay extends StatelessWidget {
             return Positioned(
               right: 16,
               bottom: 16 + bottomSafe,
-              child: _Burbuja(controller: controller),
+              // `Material` porque este widget vive fuera del Scaffold (como
+              // hermano suyo en el Stack de la pantalla): sin esto, cualquier
+              // InkWell de dentro no encuentra ancestro y revienta.
+              child: Material(
+                type: MaterialType.transparency,
+                child: _Burbuja(controller: controller),
+              ),
             );
           case GAiAssistantMode.panel:
             // El teclado ocupa `viewInsets.bottom`: sin sumarlo aquí, el panel
@@ -47,10 +53,13 @@ class GAiAssistantOverlay extends StatelessWidget {
             return Positioned(
               right: 12,
               bottom: 12 + bottomSafe + teclado,
-              child: SizedBox(
-                width: ancho,
-                height: alto,
-                child: _Panel(controller: controller),
+              child: Material(
+                type: MaterialType.transparency,
+                child: SizedBox(
+                  width: ancho,
+                  height: alto,
+                  child: _Panel(controller: controller),
+                ),
               ),
             );
         }
