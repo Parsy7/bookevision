@@ -162,6 +162,62 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
     });
 
+    testWidgets(
+        'seleccionar dentro de "Escribir yo" ofrece "Preguntar a la IA", sin '
+        'poder usarlo como sugerencia', (tester) async {
+      await tester
+          .pumpWidget(_app(const GReviewerScreen(reviewId: 'x'), ApiFalsa()));
+      await _asentar(tester);
+
+      await _pulsar(tester, find.text('Escribir yo'));
+      await tester.enterText(find.byType(EditableText), 'Mi versión de la frase');
+      await tester.pump();
+      expect(find.text('Preguntar a la IA'), findsNothing,
+          reason: 'escribir sin seleccionar no saca el botón');
+
+      final editor = tester.widget<EditableText>(find.byType(EditableText)).controller;
+      editor.selection = const TextSelection(baseOffset: 3, extentOffset: 10); // "versión"
+      await tester.pump();
+      expect(find.text('Preguntar a la IA'), findsOneWidget);
+
+      await tester.tap(find.text('Preguntar a la IA'));
+      await tester.pump();
+      expect(find.textContaining('Sobre: "versión"'), findsOneWidget);
+
+      await tester.enterText(
+          find.widgetWithText(TextField, 'Escribe tu mensaje…'), '¿Mejor así?');
+      await tester.tap(find.byIcon(Icons.arrow_upward));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(find.text('Respuesta sobre la selección'), findsOneWidget);
+      expect(find.textContaining('USAR COMO SUGERENCIA'), findsNothing,
+          reason: 'lo escrito a mano no existe en el original: no se puede anclar');
+
+      await tester.pump(const Duration(seconds: 2));
+    });
+
+    testWidgets('cambiar de opción con texto seleccionado quita el botón',
+        (tester) async {
+      await tester
+          .pumpWidget(_app(const GReviewerScreen(reviewId: 'x'), ApiFalsa()));
+      await _asentar(tester);
+
+      await _pulsar(tester, find.text('Escribir yo'));
+      await tester.enterText(find.byType(EditableText), 'Mi versión de la frase');
+      tester.widget<EditableText>(find.byType(EditableText)).controller.selection =
+          const TextSelection(baseOffset: 3, extentOffset: 10);
+      await tester.pump();
+      expect(find.text('Preguntar a la IA'), findsOneWidget);
+
+      await _pulsar(tester, find.text('Aceptar propuesta'));
+      await tester.pump();
+      expect(find.text('Preguntar a la IA'), findsNothing,
+          reason: 'el editor ya no está: su selección tampoco');
+
+      await tester.pump(const Duration(seconds: 2));
+    });
+
     testWidgets('la barra inferior lleva la cuenta en singular y plural',
         (tester) async {
       await tester

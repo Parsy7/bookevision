@@ -20,10 +20,17 @@ class GSuggestionCard extends StatelessWidget {
   /// Párrafo donde cae la sugerencia, para la cabecera («¶6», «¶3–¶4»).
   final String paragraphs;
 
+  /// Seleccionar texto dentro de "Escribir yo" avisa con el fragmento, para
+  /// que la pantalla muestre el botón flotante "Preguntar a la IA".
+  final void Function(String seleccion)? onSeleccionCambia;
+  final VoidCallback? onSeleccionVacia;
+
   const GSuggestionCard({
     super.key,
     required this.index,
     required this.paragraphs,
+    this.onSeleccionCambia,
+    this.onSeleccionVacia,
   });
 
   @override
@@ -53,7 +60,13 @@ class GSuggestionCard extends StatelessWidget {
           ),
         if (s.isReplace) ..._sustitucion(context, s, a) else ..._insercion(context, s, a),
         _acciones(context, s, a),
-        if (a.choice == Choice.custom) _Editor(index: index, insert: s.isInsert),
+        if (a.choice == Choice.custom)
+          _Editor(
+            index: index,
+            insert: s.isInsert,
+            onSeleccionCambia: onSeleccionCambia,
+            onSeleccionVacia: onSeleccionVacia,
+          ),
         if (a.choice == Choice.omit)
           const GWarn('El fragmento desaparecerá del capítulo. No se pone '
               'nada en su lugar.'),
@@ -181,8 +194,15 @@ class GSuggestionCard extends StatelessWidget {
 class _Editor extends StatefulWidget {
   final int index;
   final bool insert;
+  final void Function(String seleccion)? onSeleccionCambia;
+  final VoidCallback? onSeleccionVacia;
 
-  const _Editor({required this.index, required this.insert});
+  const _Editor({
+    required this.index,
+    required this.insert,
+    this.onSeleccionCambia,
+    this.onSeleccionVacia,
+  });
 
   @override
   State<_Editor> createState() => _EditorState();
@@ -191,6 +211,7 @@ class _Editor extends StatefulWidget {
 class _EditorState extends State<_Editor> {
   late final TextEditingController _controller;
   late String _ultimoTexto;
+  bool _avisoSeleccion = false;
 
   @override
   void initState() {
@@ -198,7 +219,20 @@ class _EditorState extends State<_Editor> {
     _ultimoTexto =
         context.read<ReviewSession>().answerAt(widget.index).custom;
     _controller = TextEditingController(text: _ultimoTexto)
-      ..addListener(_onChanged);
+      ..addListener(_onChanged)
+      ..addListener(_onSeleccion);
+  }
+
+  void _onSeleccion() {
+    final sel = _controller.selection;
+    final texto = sel.isValid ? sel.textInside(_controller.text).trim() : '';
+    if (texto.isNotEmpty) {
+      _avisoSeleccion = true;
+      widget.onSeleccionCambia?.call(texto);
+    } else if (_avisoSeleccion) {
+      _avisoSeleccion = false;
+      widget.onSeleccionVacia?.call();
+    }
   }
 
   void _onChanged() {
@@ -211,7 +245,14 @@ class _EditorState extends State<_Editor> {
 
   @override
   void dispose() {
+    // Al cambiar de opción el editor desaparece: si tenía el botón a la
+    // vista, se quita — después del frame, porque aquí el árbol está bloqueado.
+    if (_avisoSeleccion) {
+      final vacia = widget.onSeleccionVacia;
+      WidgetsBinding.instance.addPostFrameCallback((_) => vacia?.call());
+    }
     _controller.removeListener(_onChanged);
+    _controller.removeListener(_onSeleccion);
     _controller.dispose();
     super.dispose();
   }

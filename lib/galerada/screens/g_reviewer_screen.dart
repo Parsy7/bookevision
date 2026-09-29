@@ -55,6 +55,7 @@ class _VistaState extends State<_Vista> {
   bool _generandoIA = false;
   GAiAssistantController? _asistente;
   String? _seleccionPill;
+  bool _pillAnclable = true;
 
   @override
   void dispose() {
@@ -172,18 +173,30 @@ class _VistaState extends State<_Vista> {
   }
 
   void _seleccionCambia(String seleccion) {
-    setState(() => _seleccionPill = seleccion);
+    setState(() {
+      _seleccionPill = seleccion;
+      _pillAnclable = true;
+    });
+  }
+
+  /// Lo escrito en "Escribir yo" no existe en el capítulo original, así que
+  /// la respuesta no se puede anclar como sugerencia.
+  void _seleccionEnEditor(String seleccion) {
+    setState(() {
+      _seleccionPill = seleccion;
+      _pillAnclable = false;
+    });
   }
 
   void _ocultarPill() {
-    if (_seleccionPill == null) return;
+    if (!mounted || _seleccionPill == null) return;
     setState(() => _seleccionPill = null);
   }
 
   void _abrirDesdePill() {
     final seleccion = _seleccionPill;
     if (seleccion == null) return;
-    _asistente?.abrir(seleccion: seleccion);
+    _asistente?.abrir(seleccion: seleccion, anclable: _pillAnclable);
     _ocultarPill();
   }
 
@@ -350,7 +363,12 @@ class _VistaState extends State<_Vista> {
               );
         return Container(
           key: _cardKeys[p.index],
-          child: GSuggestionCard(index: p.index, paragraphs: etiqueta),
+          child: GSuggestionCard(
+            index: p.index,
+            paragraphs: etiqueta,
+            onSeleccionCambia: ai == null ? null : _seleccionEnEditor,
+            onSeleccionVacia: ai == null ? null : _ocultarPill,
+          ),
         );
     }
   }
