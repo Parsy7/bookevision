@@ -416,6 +416,30 @@ class _GProseBlockState extends State<GProseBlock> {
         contentPadding: EdgeInsets.zero,
         border: InputBorder.none,
       ),
+      // Ya editando, seleccionar texto abre el menú nativo de Cortar/Copiar/
+      // Pegar de siempre (útil de verdad mientras se escribe) — aquí solo se
+      // le añade "Preguntar a la IA" cuando hay algo seleccionado.
+      contextMenuBuilder: widget.onPedirIa == null
+          ? null
+          : (context, state) {
+              final seleccion = state.textEditingValue.selection
+                  .textInside(state.textEditingValue.text)
+                  .trim();
+              final items = state.contextMenuButtonItems.toList();
+              if (seleccion.isNotEmpty) {
+                items.add(ContextMenuButtonItem(
+                  label: 'Preguntar a la IA',
+                  onPressed: () {
+                    state.hideToolbar();
+                    widget.onPedirIa!(seleccion);
+                  },
+                ));
+              }
+              return AdaptiveTextSelectionToolbar.buttonItems(
+                anchors: state.contextMenuAnchors,
+                buttonItems: items,
+              );
+            },
     );
   }
 

@@ -238,6 +238,31 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
     });
 
+    testWidgets(
+        'ya en modo edición, seleccionar texto también ofrece "Preguntar a la IA"',
+        (tester) async {
+      await tester.pumpWidget(
+          _app(const GReviewerScreen(reviewId: 'doc'), ApiFalsa(_documento())));
+      await _asentar(tester);
+
+      final caja = tester.getRect(find.byType(GProseBlock));
+      await tester.longPressAt(Offset(caja.left + 60, caja.top + 40));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final controlador = tester.widget<EditableText>(find.byType(EditableText)).controller;
+      controlador.selection = const TextSelection(baseOffset: 2, extentOffset: 13); // "La promesa"
+
+      final campo = tester.widget<TextField>(find.byType(TextField));
+      final estado = tester.state<EditableTextState>(find.byType(EditableText));
+      final menu = campo.contextMenuBuilder!(tester.element(find.byType(TextField)), estado);
+
+      await tester.pumpWidget(MaterialApp(home: Material(child: menu)));
+      expect(find.text('Preguntar a la IA'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 2));
+    });
+
     testWidgets('un bloque editado lleva franja roja y sus chips',
         (tester) async {
       await tester.pumpWidget(
