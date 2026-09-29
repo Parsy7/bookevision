@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/review.dart';
 import '../../services/api_service.dart';
+import '../../services/g_ai_assistant_controller.dart';
 import '../../services/review_session.dart';
 import '../../utils/export_md.dart';
 import '../../utils/reader_layout.dart';
 import '../theme/g_colors.dart';
 import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
+import '../widgets/g_ai_assistant_overlay.dart';
 import '../widgets/g_app_bar.dart';
 import '../widgets/g_bits.dart';
 import '../widgets/g_dialog.dart';
@@ -15,7 +17,6 @@ import '../widgets/g_foot.dart';
 import '../widgets/g_paragraphs.dart';
 import '../widgets/g_prose.dart';
 import '../widgets/g_suggestion_card.dart';
-import 'g_chat_screen.dart';
 import 'g_confirm_screen.dart';
 import 'g_original_screen.dart';
 import 'g_preview_screen.dart';
@@ -51,6 +52,27 @@ class _VistaState extends State<_Vista> {
   int _lastFocused = -1;
   GProseEditActions? _edicion;
   bool _generandoIA = false;
+  GAiAssistantController? _asistente;
+
+  @override
+  void dispose() {
+    _asistente?.dispose();
+    super.dispose();
+  }
+
+  /// Se crea en el primer build con la revisión ya cargada (hasta entonces no
+  /// hay `revisionId`), y arranca como burbuja: es un acceso permanente al
+  /// chat con la IA, ya no un ítem del menú de 3 puntos.
+  GAiAssistantController _aiPara(ReviewSession session) {
+    final actual = _asistente;
+    if (actual != null) return actual;
+    final nuevo = GAiAssistantController(
+      api: context.read<ApiService>(),
+      revisionId: session.review!.id,
+    )..mode = GAiAssistantMode.bubble;
+    _asistente = nuevo;
+    return nuevo;
+  }
 
   void _ensurePieces(Review r) {
     if (_piecesForId == r.id && _pieces != null) return;
@@ -154,7 +176,9 @@ class _VistaState extends State<_Vista> {
       onPopInvoked: (didPop) {
         if (session.canSave) session.saveNow();
       },
-      child: Scaffold(
+      child: Stack(
+        children: [
+          Scaffold(
         appBar: GAppBar(
           title: session.review?.title ?? 'Revisión',
           trailing: [
@@ -175,10 +199,6 @@ class _VistaState extends State<_Vista> {
                       icon: Icons.menu_book,
                       value: 'original'),
                   GMenuItem(
-                      label: 'Chat con la IA',
-                      icon: Icons.chat_bubble_outline,
-                      value: 'chat_ia'),
-                  GMenuItem(
                       label: 'Generar sugerencias con IA',
                       icon: Icons.auto_awesome,
                       value: 'sugerencias_ia'),
@@ -196,8 +216,6 @@ class _VistaState extends State<_Vista> {
                         text: session.currentText(),
                         counts: session.counts(),
                       ));
-                    case 'chat_ia':
-                      _abrir(const GChatScreen());
                     case 'sugerencias_ia':
                       _generarSugerenciasIA(session);
                     case 'export':
@@ -219,6 +237,10 @@ class _VistaState extends State<_Vista> {
         body: _cuerpo(session),
         bottomNavigationBar:
             session.loadStatus == LoadStatus.ready ? _barra(session) : null,
+          ),
+          if (session.loadStatus == LoadStatus.ready)
+            GAiAssistantOverlay(controller: _aiPara(session)),
+        ],
       ),
     );
   }

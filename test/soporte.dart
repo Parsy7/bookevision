@@ -54,6 +54,22 @@ class ApiFalsa extends ApiService {
 
   @override
   Future<String> chat(String mensaje) async => 'Respuesta de mentira';
+
+  @override
+  Future<String> preguntarSeleccion(String seleccion, String pregunta) async =>
+      'Respuesta sobre la selección';
+
+  int sugerenciasGeneradas = 0;
+
+  @override
+  Future<Review> generarSugerencias(
+    String revisionId, {
+    String? instruccion,
+    Map<String, dynamic>? seed,
+  }) async {
+    sugerenciasGeneradas++;
+    return revision;
+  }
 }
 
 /// Lista larga, para comprobar qué pasa con el último elemento del scroll.

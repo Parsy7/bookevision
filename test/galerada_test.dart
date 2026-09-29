@@ -351,9 +351,9 @@ void main() {
 
     final capitulo = List.filled(30, 'Un párrafo de relleno bien largo.')
         .join('\n\n');
-    await tester.pumpWidget(MaterialApp(
-      theme: buildGaleradaTheme(),
-      home: GOriginalScreen(chapter: capitulo, revisionId: 'x'),
+    await tester.pumpWidget(_app(
+      GOriginalScreen(chapter: capitulo, revisionId: 'x'),
+      ApiFalsa(),
     ));
     await tester.pump();
 

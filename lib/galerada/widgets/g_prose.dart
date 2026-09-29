@@ -7,7 +7,6 @@ import '../../services/review_session.dart';
 import '../theme/g_colors.dart';
 import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
-import 'g_ai_ask_sheet.dart';
 import 'g_bits.dart';
 
 /// Acciones del bloque que se está editando, para que la pantalla las pinte en
@@ -52,17 +51,20 @@ class GProse extends StatelessWidget {
 /// blanco. Lo usan la vista previa, la confirmación y el capítulo original,
 /// donde no se edita y por tanto partir el texto sale gratis.
 ///
-/// Si se pasa [revisionId], el texto se vuelve seleccionable y el menú de
-/// selección nativo gana "Preguntar a la IA" sobre el fragmento elegido. Sin
-/// `revisionId` (vista previa, confirmación) no hay selección: el texto ahí
-/// es la versión ya compuesta, no el capítulo original literal, así que un
-/// fragmento suyo no tiene por qué localizarse dentro del original para
-/// convertirse en sugerencia.
+/// Si se pasa [onPedirIa], el texto se vuelve seleccionable: en vez del menú
+/// nativo, seleccionar un fragmento avisa a quien la use (con el fragmento y
+/// dónde pintar el botón "Preguntar a la IA") para que muestre su propio
+/// botón flotante — el menú nativo de copiar/seleccionar todo se suprime
+/// para no duplicar affordances. Sin `onPedirIa` (vista previa, confirmación)
+/// no hay selección: el texto ahí es la versión ya compuesta, no el capítulo
+/// original literal, así que un fragmento suyo no tiene por qué localizarse
+/// dentro del original para convertirse en sugerencia.
 class GProseFlow extends StatefulWidget {
   final String text;
-  final String? revisionId;
+  final void Function(String seleccion, Offset anchor)? onPedirIa;
+  final VoidCallback? onSeleccionVacia;
 
-  const GProseFlow(this.text, {super.key, this.revisionId});
+  const GProseFlow(this.text, {super.key, this.onPedirIa, this.onSeleccionVacia});
 
   @override
   State<GProseFlow> createState() => _GProseFlowState();
@@ -70,8 +72,8 @@ class GProseFlow extends StatefulWidget {
 
 class _GProseFlowState extends State<GProseFlow> {
   // SelectableRegionState no expone el contenido seleccionado por fuera; se
-  // seguimos aquí vía `onSelectionChanged` para poder leerlo al pulsar
-  // "Preguntar a la IA" en el menú de selección.
+  // sigue aquí vía `onSelectionChanged` para poder leerlo al mostrar el botón
+  // "Preguntar a la IA".
   SelectedContent? _seleccionActual;
 
   @override
@@ -88,26 +90,23 @@ class _GProseFlowState extends State<GProseFlow> {
       ],
     );
 
-    final revisionId = widget.revisionId;
-    if (revisionId == null) return columna;
+    final onPedirIa = widget.onPedirIa;
+    if (onPedirIa == null) return columna;
 
     return SelectionArea(
-      onSelectionChanged: (content) => _seleccionActual = content,
+      onSelectionChanged: (content) {
+        _seleccionActual = content;
+        final texto = content?.plainText.trim();
+        if (texto == null || texto.isEmpty) widget.onSeleccionVacia?.call();
+      },
       contextMenuBuilder: (context, selectableRegionState) {
-        final items = selectableRegionState.contextMenuButtonItems.toList();
-        items.add(ContextMenuButtonItem(
-          label: 'Preguntar a la IA',
-          onPressed: () {
-            final seleccion = _seleccionActual?.plainText.trim();
-            selectableRegionState.hideToolbar();
-            if (seleccion == null || seleccion.isEmpty) return;
-            GAiAskSheet.show(context, seleccion: seleccion, revisionId: revisionId);
-          },
-        ));
-        return AdaptiveTextSelectionToolbar.buttonItems(
-          anchors: selectableRegionState.contextMenuAnchors,
-          buttonItems: items,
-        );
+        final seleccion = _seleccionActual?.plainText.trim();
+        if (seleccion != null && seleccion.isNotEmpty) {
+          onPedirIa(seleccion, selectableRegionState.contextMenuAnchors.primaryAnchor);
+        }
+        // Sin barra nativa: el propio botón flotante "Preguntar a la IA" es
+        // la única affordance sobre la selección.
+        return const SizedBox.shrink();
       },
       child: columna,
     );
