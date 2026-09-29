@@ -19,6 +19,11 @@ define('GEMINI_API_KEY', '');
 // Alias de Google que apunta siempre al Flash estable más reciente, para no
 // tener que tocar código cada vez que retiran una versión.
 define('GEMINI_MODEL', 'gemini-flash-latest');
+// Opcional: modelo de reserva si el principal está saturado (Google separa
+// la capacidad de Flash y Flash-Lite). Sin definir, GeminiClient usa
+// 'gemini-flash-lite-latest' por defecto — solo hace falta tocar esto para
+// cambiar ese valor por defecto.
+// define('GEMINI_MODEL_FALLBACK', 'gemini-flash-lite-latest');
 
 function get_pdo(): PDO {
     static $pdo = null;

@@ -144,6 +144,11 @@ class _PanelState extends State<_Panel> {
     );
   }
 
+  Future<void> _reintentar(GAiMessage msg) async {
+    await widget.controller.reintentar(msg);
+    _scrollAlFinal();
+  }
+
   Future<void> _convertir(GAiMessage msg) async {
     final ok = await widget.controller.convertirEnSugerencia(msg);
     if (!mounted) return;
@@ -238,6 +243,7 @@ class _PanelState extends State<_Panel> {
                         mensaje: mensaje,
                         onCopiar: () => _copiar(mensaje.texto),
                         onConvertir: () => _convertir(mensaje),
+                        onReintentar: () => _reintentar(mensaje),
                         convirtiendo: c.convirtiendo,
                       );
                     },
@@ -300,12 +306,14 @@ class _Burbujita extends StatelessWidget {
   final GAiMessage mensaje;
   final VoidCallback onCopiar;
   final VoidCallback onConvertir;
+  final VoidCallback onReintentar;
   final bool convirtiendo;
 
   const _Burbujita({
     required this.mensaje,
     required this.onCopiar,
     required this.onConvertir,
+    required this.onReintentar,
     required this.convirtiendo,
   });
 
@@ -339,7 +347,13 @@ class _Burbujita extends StatelessWidget {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(right: 22),
-                    child: Text(mensaje.texto, style: GText.block.copyWith(fontSize: 14.5)),
+                    child: Text(
+                      mensaje.texto,
+                      style: GText.block.copyWith(
+                        fontSize: 14.5,
+                        color: mensaje.esError ? GColors.red : null,
+                      ),
+                    ),
                   ),
                   Positioned(
                     top: 0,
@@ -357,6 +371,17 @@ class _Burbujita extends StatelessWidget {
                 ],
               ),
             ),
+            if (mensaje.esError) ...[
+              const SizedBox(height: GSpacing.gapXs),
+              InkWell(
+                onTap: onReintentar,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: GSpacing.gapSm, vertical: 5),
+                  decoration: BoxDecoration(border: Border.all(color: GColors.ink, width: GSpacing.border)),
+                  child: const GMono('Reintentar'),
+                ),
+              ),
+            ],
             if (mensaje.seed != null) ...[
               const SizedBox(height: GSpacing.gapXs),
               InkWell(

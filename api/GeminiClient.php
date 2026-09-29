@@ -6,6 +6,19 @@
  * https://ai.google.dev/api/generate-content.
  */
 class GeminiClient {
+    /** Reintentos ante saturación puntual del modelo (429/503, "high demand"). */
+    private const INTENTOS = 3;
+    private const ESPERA_INICIAL_MS = 800;
+
+    /**
+     * Si el modelo principal sigue saturado tras agotar los reintentos, se
+     * prueba una vez con este modelo de reserva antes de rendirse — Google
+     * separa la capacidad de Flash y Flash-Lite, así que una sobrecarga
+     * sostenida (no un simple pico) del primero no tiene por qué afectar al
+     * segundo. Configurable con `GEMINI_MODEL_FALLBACK` en `db.php`.
+     */
+    private const MODELO_RESERVA_POR_DEFECTO = 'gemini-flash-lite-latest';
+
     /**
      * Pide contenido al modelo. Si `$schema` no es null, fuerza salida JSON
      * estructurada (`generationConfig.responseSchema`) y devuelve también el
@@ -13,17 +26,12 @@ class GeminiClient {
      *
      * @return array{text: string, json: ?array}
      */
-    /** Reintentos ante saturación puntual del modelo (429/503, "high demand"). */
-    private const INTENTOS = 3;
-    private const ESPERA_INICIAL_MS = 800;
-
     public static function generar(string $prompt, ?array $schema = null): array {
         if (!defined('GEMINI_API_KEY') || GEMINI_API_KEY === '') {
             throw new Exception('GEMINI_API_KEY no está configurada en api/db.php');
         }
-        $modelo = (defined('GEMINI_MODEL') && GEMINI_MODEL !== '')
+        $modeloPrincipal = (defined('GEMINI_MODEL') && GEMINI_MODEL !== '')
             ? GEMINI_MODEL : 'gemini-flash-latest';
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent";
 
         $body = ['contents' => [['parts' => [['text' => $prompt]]]]];
         if ($schema !== null) {
@@ -33,41 +41,64 @@ class GeminiClient {
             ];
         }
 
+        $resultado = self::intentar($modeloPrincipal, $body, $schema, self::INTENTOS);
+        if ($resultado['ok']) return $resultado['valor'];
+
+        $modeloReserva = (defined('GEMINI_MODEL_FALLBACK') && GEMINI_MODEL_FALLBACK !== '')
+            ? GEMINI_MODEL_FALLBACK : self::MODELO_RESERVA_POR_DEFECTO;
+        if ($resultado['transitorio'] && $modeloReserva !== $modeloPrincipal) {
+            $resultadoReserva = self::intentar($modeloReserva, $body, $schema, 2);
+            if ($resultadoReserva['ok']) return $resultadoReserva['valor'];
+            throw new Exception($resultadoReserva['mensaje']);
+        }
+
+        throw new Exception($resultado['mensaje']);
+    }
+
+    /**
+     * Reintenta hasta `$intentos` veces contra un modelo concreto, con espera
+     * creciente. Nunca lanza: siempre dice si acabó bien y, si no, si el
+     * último fallo fue de los que merece la pena reintentar con otro modelo.
+     *
+     * @return array{ok: bool, valor?: array, transitorio?: bool, mensaje?: string}
+     */
+    private static function intentar(string $modelo, array $body, ?array $schema, int $intentos): array {
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelo}:generateContent";
         $esperaMs = self::ESPERA_INICIAL_MS;
-        for ($intento = 1; $intento <= self::INTENTOS; $intento++) {
+        $transitorio = false;
+        $mensaje = 'Gemini no respondió tras varios intentos';
+
+        for ($intento = 1; $intento <= $intentos; $intento++) {
             [$httpCode, $decoded, $raw, $error] = self::llamar($url, $body);
-            $ultimoIntento = $intento === self::INTENTOS;
 
             if ($raw === false) {
-                if ($ultimoIntento) {
-                    throw new Exception('No se pudo contactar con Gemini: ' . $error);
-                }
+                $transitorio = false;
+                $mensaje = 'No se pudo contactar con Gemini: ' . $error;
             } elseif ($httpCode >= 200 && $httpCode < 300) {
                 $texto = $decoded['candidates'][0]['content']['parts'][0]['text'] ?? null;
                 if ($texto === null) {
-                    throw new Exception('Gemini no devolvió ningún texto');
+                    return ['ok' => false, 'transitorio' => false, 'mensaje' => 'Gemini no devolvió ningún texto'];
                 }
-                return [
+                return ['ok' => true, 'valor' => [
                     'text' => $texto,
                     'json' => $schema !== null ? json_decode($texto, true) : null,
-                ];
+                ]];
             } else {
-                $mensaje = is_array($decoded) ? ($decoded['error']['message'] ?? $raw) : $raw;
-                if (!$ultimoIntento && self::esTransitorio($httpCode, (string)$mensaje)) {
-                    // Modelo saturado un instante: se reintenta sin que el
-                    // usuario llegue a ver el error, en vez de rendirse a la
-                    // primera (Gemini avisa explícitamente de que son picos
-                    // puntuales de demanda).
-                } else {
-                    throw new Exception('Gemini devolvió un error: ' . $mensaje);
+                $textoError = is_array($decoded) ? ($decoded['error']['message'] ?? $raw) : $raw;
+                $transitorio = self::esTransitorio($httpCode, (string)$textoError);
+                $mensaje = 'Gemini devolvió un error: ' . $textoError;
+                if (!$transitorio) {
+                    return ['ok' => false, 'transitorio' => false, 'mensaje' => $mensaje];
                 }
             }
 
-            usleep($esperaMs * 1000);
-            $esperaMs *= 2;
+            if ($intento < $intentos) {
+                usleep($esperaMs * 1000);
+                $esperaMs *= 2;
+            }
         }
 
-        throw new Exception('Gemini no respondió tras varios intentos');
+        return ['ok' => false, 'transitorio' => $transitorio, 'mensaje' => $mensaje];
     }
 
     /** 429 (cuota) y 503 (sobrecarga) son los códigos que Google documenta como reintentables. */

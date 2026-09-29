@@ -7,13 +7,23 @@ enum GAiAssistantMode { hidden, bubble, panel }
 
 /// Un mensaje del chat flotante. `seed` solo está presente en una respuesta
 /// nacida de una pregunta sobre texto seleccionado: es lo que hace falta
-/// para poder convertirla en una sugerencia concreta del capítulo.
+/// para poder convertirla en una sugerencia concreta del capítulo. `esError`
+/// + `origenParaReintentar` permiten reintentar la misma pregunta con un
+/// toque, sin tener que volver a escribirla.
 class GAiMessage {
   final String texto;
   final bool deUsuario;
   final Map<String, dynamic>? seed;
+  final bool esError;
+  final String? origenParaReintentar;
 
-  const GAiMessage(this.texto, this.deUsuario, {this.seed});
+  const GAiMessage(
+    this.texto,
+    this.deUsuario, {
+    this.seed,
+    this.esError = false,
+    this.origenParaReintentar,
+  });
 }
 
 /// Estado del asistente flotante de IA: vive tanto como la pantalla que lo
@@ -61,6 +71,19 @@ class GAiAssistantController extends ChangeNotifier {
     final mensaje = texto.trim();
     if (mensaje.isEmpty || enviando) return;
     messages.add(GAiMessage(mensaje, true));
+    await _pedir(mensaje);
+  }
+
+  /// Repite la pregunta que falló, sin tener que volver a escribirla ni
+  /// duplicar la burbuja del usuario — solo quita el aviso de error.
+  Future<void> reintentar(GAiMessage error) async {
+    if (!error.esError || error.origenParaReintentar == null || enviando) return;
+    messages.remove(error);
+    notifyListeners();
+    await _pedir(error.origenParaReintentar!);
+  }
+
+  Future<void> _pedir(String mensaje) async {
     enviando = true;
     notifyListeners();
     try {
@@ -77,7 +100,12 @@ class GAiAssistantController extends ChangeNotifier {
       ));
       if (mode != GAiAssistantMode.panel) hayNuevo = true;
     } catch (e) {
-      messages.add(GAiMessage('✕ No se pudo responder: $e', false));
+      messages.add(GAiMessage(
+        '✕ No se pudo responder: $e',
+        false,
+        esError: true,
+        origenParaReintentar: mensaje,
+      ));
     } finally {
       enviando = false;
       notifyListeners();

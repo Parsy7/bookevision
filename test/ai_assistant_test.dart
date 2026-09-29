@@ -18,6 +18,20 @@ class _ApiLenta extends ApiFalsa {
   }
 }
 
+/// Falla la primera vez (como el 502 real de Gemini saturado) y responde bien
+/// a partir de la segunda — para probar "Reintentar" sin inventar un mock de
+/// http.
+class _ApiFallaUnaVez extends ApiFalsa {
+  int llamadas = 0;
+
+  @override
+  Future<String> chat(String mensaje) async {
+    llamadas++;
+    if (llamadas == 1) throw Exception('Error API (502): saturado');
+    return 'Ahora sí';
+  }
+}
+
 void main() {
   setUp(() => GoogleFonts.config.allowRuntimeFetching = false);
 
@@ -101,6 +115,31 @@ void main() {
       expect(await c.convertirEnSugerencia(c.messages.last), isTrue);
       expect(api.sugerenciasGeneradas, 1);
     });
+
+    test('un fallo deja el mensaje marcado como reintentable', () async {
+      final c = GAiAssistantController(api: _ApiFallaUnaVez(), revisionId: 'x');
+      c.abrir();
+      await c.enviar('Hola');
+
+      final error = c.messages.last;
+      expect(error.esError, isTrue);
+      expect(error.origenParaReintentar, 'Hola');
+    });
+
+    test('reintentar repite la pregunta sin duplicar la burbuja del usuario',
+        () async {
+      final c = GAiAssistantController(api: _ApiFallaUnaVez(), revisionId: 'x');
+      c.abrir();
+      await c.enviar('Hola');
+      expect(c.messages.length, 2); // usuario + error
+
+      await c.reintentar(c.messages.last);
+
+      expect(c.messages.length, 2, reason: 'sigue habiendo solo un "Hola"');
+      expect(c.messages.first.texto, 'Hola');
+      expect(c.messages.last.texto, 'Ahora sí');
+      expect(c.messages.last.esError, isFalse);
+    });
   });
 
   group('GAiAssistantOverlay', () {
@@ -155,6 +194,28 @@ void main() {
 
       expect(c.enviando, isFalse);
       expect(find.text('Tras pensarlo'), findsOneWidget);
+    });
+
+    testWidgets('tocar "Reintentar" repite la pregunta sin volver a escribirla',
+        (tester) async {
+      final api = _ApiFallaUnaVez();
+      final c = GAiAssistantController(api: api, revisionId: 'x')..abrir();
+      await abrir(tester, c, api);
+
+      await tester.enterText(find.byType(TextField), 'Hola');
+      await tester.tap(find.byIcon(Icons.arrow_upward));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('REINTENTAR'), findsOneWidget);
+
+      await tester.tap(find.text('REINTENTAR'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('REINTENTAR'), findsNothing);
+      expect(find.text('Ahora sí'), findsOneWidget);
+      expect(find.text('Hola'), findsOneWidget, reason: 'no se duplica la pregunta');
     });
 
     testWidgets('minimizar vuelve a mostrar la burbuja', (tester) async {
