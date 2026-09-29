@@ -323,6 +323,28 @@ void main() {
       expect(find.text('Hola'), findsOneWidget, reason: 'no se duplica la pregunta');
     });
 
+    testWidgets('el panel ocupa todo el ancho menos el margen, con tope de 600',
+        (tester) async {
+      addTearDown(tester.view.reset);
+      Rect panel() => tester.getRect(find
+          .descendant(
+              of: find.byType(GAiAssistantOverlay),
+              matching: find.byType(Material))
+          .first);
+
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(360, 780);
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo')..abrir();
+      await abrir(tester, c, ApiFalsa());
+      expect(panel().width, 360 - 24, reason: 'móvil: todo el ancho menos 12 a cada lado');
+      expect(panel().right, 360 - 12);
+
+      tester.view.physicalSize = const Size(1000, 780);
+      await tester.pump();
+      expect(panel().width, 600, reason: 'tablet: no pasa de 600');
+      expect(panel().right, 1000 - 12, reason: 'sigue pegado a la derecha');
+    });
+
     testWidgets('minimizar vuelve a mostrar la burbuja', (tester) async {
       final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo')..abrir();
       await abrir(tester, c, ApiFalsa());

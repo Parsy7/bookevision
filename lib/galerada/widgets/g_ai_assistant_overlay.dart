@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import '../../services/g_ai_assistant_controller.dart';
 import '../../utils/export_md.dart';
@@ -12,6 +14,8 @@ import 'g_bits.dart';
 /// revisor, o el capítulo original), y que se puede volver a minimizar sin
 /// perder la conversación. Colocar como último hijo de un [Stack].
 class GAiAssistantOverlay extends StatelessWidget {
+  static const _anchoMaxPanel = 600.0;
+
   final GAiAssistantController controller;
 
   /// Alto de lo que ya ocupe la esquina inferior derecha en esa pantalla
@@ -50,8 +54,10 @@ class GAiAssistantOverlay extends StatelessWidget {
             // El teclado ocupa `viewInsets.bottom`: sin sumarlo aquí, el panel
             // (y su campo de texto) se queda debajo del teclado al escribir.
             final teclado = MediaQuery.viewInsetsOf(context).bottom;
+            // Todo el ancho menos el margen de 12 a cada lado; tope de 600
+            // para que en tablet no se convierta en una sábana.
             final anchoDisponible = MediaQuery.sizeOf(context).width - 24;
-            final ancho = anchoDisponible.clamp(0, 340).toDouble();
+            final ancho = anchoDisponible.clamp(0, _anchoMaxPanel).toDouble();
             final altoDisponible = MediaQuery.sizeOf(context).height - 140 - teclado - extraBottomOffset;
             final alto = controller.panelHeight.clamp(
               GAiAssistantController.minHeight,
@@ -194,15 +200,10 @@ class _PanelState extends State<_Panel> {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onVerticalDragUpdate: (d) => c.resize(-d.delta.dy),
-            child: Padding(
-              padding: const EdgeInsets.only(top: 6, bottom: 4),
-              child: Column(
-                children: [
-                  Container(width: 36, height: 4, color: GColors.grey3),
-                  const SizedBox(height: 2),
-                  Text('arrastra para estirar',
-                      style: GText.monoSm.copyWith(color: GColors.grey3, fontSize: 8)),
-                ],
+            child: SizedBox(
+              height: 22,
+              child: Center(
+                child: Container(width: 36, height: 4, color: GColors.grey3),
               ),
             ),
           ),
@@ -341,12 +342,20 @@ class _Burbujita extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Proporción del panel, no de la pantalla: en tablet el panel tiene tope
+    // de ancho y la pantalla no.
+    return LayoutBuilder(
+      builder: (context, constraints) => _contenido(constraints.maxWidth),
+    );
+  }
+
+  Widget _contenido(double anchoPanel) {
     final esUsuario = mensaje.deUsuario;
     if (esUsuario) {
       return Align(
         alignment: Alignment.centerRight,
         child: Container(
-          constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.7),
+          constraints: BoxConstraints(maxWidth: anchoPanel * 0.8),
           margin: const EdgeInsets.only(bottom: GSpacing.gapSm),
           padding: const EdgeInsets.all(GSpacing.gapSm),
           color: GColors.ink,
@@ -357,7 +366,7 @@ class _Burbujita extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.78),
+        constraints: BoxConstraints(maxWidth: anchoPanel * 0.88),
         margin: const EdgeInsets.only(bottom: GSpacing.gapSm),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -430,8 +439,9 @@ class _Burbujita extends StatelessWidget {
   }
 }
 
-/// Bocadillo de "la IA está escribiendo": tres puntos que se van iluminando
-/// en cadena, mientras se espera la respuesta.
+/// Bocadillo de "la IA está pensando": una nube de pensamiento de cómic (con
+/// sus dos burbujitas de cola) y tres puntos con los colores de la IA que
+/// saltan por turnos mientras se espera la respuesta.
 class _BurbujaEscribiendo extends StatefulWidget {
   const _BurbujaEscribiendo();
 
@@ -452,34 +462,82 @@ class _BurbujaEscribiendoState extends State<_BurbujaEscribiendo>
     super.dispose();
   }
 
+  /// 0 en reposo, 1 en lo alto del salto. Cada punto salta en la primera
+  /// mitad de su ciclo y descansa en la segunda, así se ven "por turnos".
+  double _salto(int i) {
+    final fase = ((_c.value - i * 0.16) % 1.0 + 1.0) % 1.0;
+    if (fase > 0.5) return 0;
+    return math.sin(fase * 2 * math.pi);
+  }
+
+  Widget _burbujita(double tamano, double opacidad) => Opacity(
+        opacity: opacidad,
+        child: Container(
+          width: tamano,
+          height: tamano,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: GColors.white,
+            border: Border.all(color: GColors.ink, width: GSpacing.border),
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     return Align(
       alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: GSpacing.gapSm),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        decoration: BoxDecoration(color: GColors.white, border: Border.all(color: GColors.ink, width: GSpacing.border)),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: GSpacing.gapSm),
         child: AnimatedBuilder(
           animation: _c,
           builder: (context, _) {
-            return Row(
+            // Las burbujitas de la cola "respiran" un poco, desfasadas.
+            final respira = 0.5 + 0.5 * math.sin(_c.value * 2 * math.pi);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
-              children: List.generate(3, (i) {
-                final fase = ((_c.value - i * 0.22) % 1.0 + 1.0) % 1.0;
-                final opacidad = 0.25 + 0.75 * (1 - (fase * 2 - 1).abs()).clamp(0.0, 1.0);
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2.5),
-                  child: Opacity(
-                    opacity: opacidad,
-                    child: Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: GColors.grey2),
-                    ),
+              children: [
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                  decoration: BoxDecoration(
+                    color: GColors.white,
+                    borderRadius: const BorderRadius.all(Radius.circular(999)),
+                    border: Border.all(color: GColors.ink, width: GSpacing.border),
                   ),
-                );
-              }),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(3, (i) {
+                      final s = _salto(i);
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: Transform.translate(
+                          offset: Offset(0, -5 * s),
+                          child: Transform.scale(
+                            scale: 1 + 0.15 * s,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: GAiColors.gradient[i],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 12, top: 3),
+                  child: _burbujita(9, 0.7 + 0.3 * respira),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 6, top: 2),
+                  child: _burbujita(5, 0.7 + 0.3 * (1 - respira)),
+                ),
+              ],
             );
           },
         ),
