@@ -53,7 +53,11 @@ class ApiFalsa extends ApiService {
   Future<void> resetEstado(String id) async {}
 
   @override
-  Future<String> chat(String mensaje, {required String revisionId}) async =>
+  Future<String> chat(
+    String mensaje, {
+    required String revisionId,
+    required String capitulo,
+  }) async =>
       'Respuesta de mentira';
 
   @override
@@ -61,6 +65,7 @@ class ApiFalsa extends ApiService {
     String seleccion,
     String pregunta, {
     required String revisionId,
+    required String capitulo,
   }) async =>
       'Respuesta sobre la selección';
 

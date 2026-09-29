@@ -46,6 +46,9 @@ class _GPreviewScreenState extends State<GPreviewScreen> {
   GAiAssistantController get _ai => _asistente ??= GAiAssistantController(
         api: context.read<ApiService>(),
         revisionId: widget.revisionId,
+        // Ya es el compuesto con las decisiones aplicadas: es justo lo que
+        // se ve en esta pantalla.
+        capituloActual: () => widget.text,
       );
 
   @override

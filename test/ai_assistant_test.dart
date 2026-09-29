@@ -12,22 +12,33 @@ import 'soporte.dart';
 
 class _ApiLenta extends ApiFalsa {
   @override
-  Future<String> chat(String mensaje, {required String revisionId}) async {
+  Future<String> chat(
+    String mensaje, {
+    required String revisionId,
+    required String capitulo,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 500));
     return 'Tras pensarlo';
   }
 }
 
-/// Se queda con el `revisionId` que le llegó, para comprobar que el chat
-/// libre y las preguntas sobre selección de verdad mandan el capítulo como
-/// contexto (vital: sin esto la IA no sabe de qué capítulo se habla).
+/// Se queda con lo que le llegó, para comprobar que el chat libre y las
+/// preguntas sobre selección de verdad mandan el capítulo como contexto
+/// (vital: sin esto la IA no sabe de qué capítulo se habla).
 class _ApiQueRecuerdaElContexto extends ApiFalsa {
   String? ultimoRevisionIdEnChat;
+  String? ultimoCapituloEnChat;
   String? ultimoRevisionIdEnPreguntarSeleccion;
+  String? ultimoCapituloEnPreguntarSeleccion;
 
   @override
-  Future<String> chat(String mensaje, {required String revisionId}) async {
+  Future<String> chat(
+    String mensaje, {
+    required String revisionId,
+    required String capitulo,
+  }) async {
     ultimoRevisionIdEnChat = revisionId;
+    ultimoCapituloEnChat = capitulo;
     return 'Respuesta de mentira';
   }
 
@@ -36,8 +47,10 @@ class _ApiQueRecuerdaElContexto extends ApiFalsa {
     String seleccion,
     String pregunta, {
     required String revisionId,
+    required String capitulo,
   }) async {
     ultimoRevisionIdEnPreguntarSeleccion = revisionId;
+    ultimoCapituloEnPreguntarSeleccion = capitulo;
     return 'Respuesta sobre la selección';
   }
 }
@@ -49,7 +62,11 @@ class _ApiFallaUnaVez extends ApiFalsa {
   int llamadas = 0;
 
   @override
-  Future<String> chat(String mensaje, {required String revisionId}) async {
+  Future<String> chat(
+    String mensaje, {
+    required String revisionId,
+    required String capitulo,
+  }) async {
     llamadas++;
     if (llamadas == 1) throw Exception('Error API (502): saturado');
     return 'Ahora sí';
@@ -73,32 +90,59 @@ void main() {
   }
 
   group('GAiAssistantController', () {
-    test('el chat libre manda el revisionId, para que el servidor añada el capítulo',
-        () async {
+    test('el chat libre manda el capítulo actual como contexto', () async {
       final api = _ApiQueRecuerdaElContexto();
-      final c = GAiAssistantController(api: api, revisionId: 'cap-7');
+      final c = GAiAssistantController(
+        api: api,
+        revisionId: 'cap-7',
+        capituloActual: () => 'texto del capítulo, tal cual',
+      );
       c.abrir();
       await c.enviar('¿Qué te parece este capítulo?');
       expect(api.ultimoRevisionIdEnChat, 'cap-7');
+      expect(api.ultimoCapituloEnChat, 'texto del capítulo, tal cual');
     });
 
-    test('preguntar sobre una selección también manda el revisionId', () async {
+    test('preguntar sobre una selección también manda el capítulo', () async {
       final api = _ApiQueRecuerdaElContexto();
-      final c = GAiAssistantController(api: api, revisionId: 'cap-7');
+      final c = GAiAssistantController(
+        api: api,
+        revisionId: 'cap-7',
+        capituloActual: () => 'texto del capítulo, tal cual',
+      );
       c.abrir(seleccion: 'un fragmento');
       await c.enviar('¿Por qué?');
       expect(api.ultimoRevisionIdEnPreguntarSeleccion, 'cap-7');
+      expect(api.ultimoCapituloEnPreguntarSeleccion, 'texto del capítulo, tal cual');
+    });
+
+    test('el capítulo se pide de nuevo en cada mensaje, no se cachea', () async {
+      final api = _ApiQueRecuerdaElContexto();
+      var version = 1;
+      final c = GAiAssistantController(
+        api: api,
+        revisionId: 'x',
+        capituloActual: () => 'capítulo v$version',
+      );
+      c.abrir();
+      await c.enviar('Primer mensaje');
+      expect(api.ultimoCapituloEnChat, 'capítulo v1');
+
+      version = 2; // simula una edición hecha entre un mensaje y el siguiente
+      await c.enviar('Segundo mensaje');
+      expect(api.ultimoCapituloEnChat, 'capítulo v2',
+          reason: 'la siguiente pregunta debe ver la edición ya hecha');
     });
 
     test('empieza oculto y abre en modo panel', () {
-      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x');
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo');
       expect(c.mode, GAiAssistantMode.hidden);
       c.abrir();
       expect(c.mode, GAiAssistantMode.panel);
     });
 
     test('minimizar vuelve a burbuja sin perder los mensajes', () async {
-      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x');
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo');
       c.abrir();
       await c.enviar('Hola');
       expect(c.messages.length, 2);
@@ -108,7 +152,7 @@ void main() {
     });
 
     test('marca "hay nuevo" si la respuesta llega estando minimizado', () async {
-      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x');
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo');
       c.abrir();
       c.minimizar();
       await c.enviar('¿Sigues ahí?');
@@ -118,7 +162,7 @@ void main() {
     });
 
     test('con contexto de selección, pregunta usa preguntarSeleccion y trae seed', () async {
-      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x');
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo');
       c.abrir(seleccion: 'un fragmento del capítulo');
       await c.enviar('¿Por qué?');
       final respuesta = c.messages.last;
@@ -130,7 +174,7 @@ void main() {
 
     test('con anclable=false (vista previa) se pregunta pero no hay seed',
         () async {
-      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x');
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo');
       c.abrir(seleccion: 'texto ya compuesto', anclable: false);
       await c.enviar('¿Y esto?');
       final respuesta = c.messages.last;
@@ -141,14 +185,14 @@ void main() {
     });
 
     test('sin selección, chat libre no trae seed', () async {
-      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x');
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo');
       c.abrir();
       await c.enviar('Hola');
       expect(c.messages.last.seed, isNull);
     });
 
     test('resize se queda dentro de los límites', () {
-      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x');
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo');
       c.resize(-10000);
       expect(c.panelHeight, GAiAssistantController.minHeight);
       c.resize(10000);
@@ -157,7 +201,7 @@ void main() {
 
     test('convertirEnSugerencia llama a la API solo cuando hay seed', () async {
       final api = ApiFalsa();
-      final c = GAiAssistantController(api: api, revisionId: 'x');
+      final c = GAiAssistantController(api: api, revisionId: 'x', capituloActual: () => 'un capitulo');
       c.abrir();
       await c.enviar('Hola'); // sin seed
       expect(await c.convertirEnSugerencia(c.messages.last), isFalse);
@@ -170,7 +214,7 @@ void main() {
     });
 
     test('un fallo deja el mensaje marcado como reintentable', () async {
-      final c = GAiAssistantController(api: _ApiFallaUnaVez(), revisionId: 'x');
+      final c = GAiAssistantController(api: _ApiFallaUnaVez(), revisionId: 'x', capituloActual: () => 'un capitulo');
       c.abrir();
       await c.enviar('Hola');
 
@@ -181,7 +225,7 @@ void main() {
 
     test('reintentar repite la pregunta sin duplicar la burbuja del usuario',
         () async {
-      final c = GAiAssistantController(api: _ApiFallaUnaVez(), revisionId: 'x');
+      final c = GAiAssistantController(api: _ApiFallaUnaVez(), revisionId: 'x', capituloActual: () => 'un capitulo');
       c.abrir();
       await c.enviar('Hola');
       expect(c.messages.length, 2); // usuario + error
@@ -197,13 +241,13 @@ void main() {
 
   group('GAiAssistantOverlay', () {
     testWidgets('oculto no pinta nada', (tester) async {
-      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x');
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo');
       await abrir(tester, c, ApiFalsa());
       expect(find.byType(TextField), findsNothing);
     });
 
     testWidgets('la burbuja abre el panel, y el campo no se come la pantalla', (tester) async {
-      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x')
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo')
         ..mode = GAiAssistantMode.bubble;
       await abrir(tester, c, ApiFalsa());
 
@@ -218,7 +262,7 @@ void main() {
     });
 
     testWidgets('enviar un mensaje muestra la respuesta de la IA', (tester) async {
-      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x')..abrir();
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo')..abrir();
       await abrir(tester, c, ApiFalsa());
 
       await tester.enterText(find.byType(TextField), 'Hola');
@@ -233,7 +277,7 @@ void main() {
     testWidgets('mientras espera la respuesta no se ve el texto todavía',
         (tester) async {
       final api = _ApiLenta();
-      final c = GAiAssistantController(api: api, revisionId: 'x')..abrir();
+      final c = GAiAssistantController(api: api, revisionId: 'x', capituloActual: () => 'un capitulo')..abrir();
       await abrir(tester, c, api);
 
       await tester.enterText(find.byType(TextField), 'Hola');
@@ -252,7 +296,7 @@ void main() {
     testWidgets('tocar "Reintentar" repite la pregunta sin volver a escribirla',
         (tester) async {
       final api = _ApiFallaUnaVez();
-      final c = GAiAssistantController(api: api, revisionId: 'x')..abrir();
+      final c = GAiAssistantController(api: api, revisionId: 'x', capituloActual: () => 'un capitulo')..abrir();
       await abrir(tester, c, api);
 
       await tester.enterText(find.byType(TextField), 'Hola');
@@ -272,7 +316,7 @@ void main() {
     });
 
     testWidgets('minimizar vuelve a mostrar la burbuja', (tester) async {
-      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x')..abrir();
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo')..abrir();
       await abrir(tester, c, ApiFalsa());
 
       await tester.tap(find.byIcon(Icons.keyboard_arrow_down));

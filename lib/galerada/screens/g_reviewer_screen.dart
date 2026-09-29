@@ -69,6 +69,9 @@ class _VistaState extends State<_Vista> {
     final nuevo = GAiAssistantController(
       api: context.read<ApiService>(),
       revisionId: session.review!.id,
+      // El compuesto con las decisiones ya tomadas, no el original a pelo:
+      // es "el capítulo" tal como lo ves ahora mismo en el revisor.
+      capituloActual: session.currentText,
     )..mode = GAiAssistantMode.bubble;
     _asistente = nuevo;
     return nuevo;

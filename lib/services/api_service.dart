@@ -137,13 +137,20 @@ class ApiService {
 
   // ---------- Asistente de IA ----------
 
-  /// `revisionId` es lo que le permite al servidor anteponer el capítulo
-  /// como contexto: sin él, la IA no tiene ni idea de qué capítulo se habla.
-  Future<String> chat(String mensaje, {required String revisionId}) async {
+  /// `capitulo` es el texto que la IA usa como contexto — sin él, no tiene
+  /// ni idea de qué capítulo se habla. Cada pantalla decide cuál le
+  /// corresponde: el compuesto con las decisiones ya tomadas (revisor, vista
+  /// previa) o el original literal ("Ver original"). `revisionId` va de
+  /// paso como respaldo del lado del servidor si `capitulo` llegara vacío.
+  Future<String> chat(
+    String mensaje, {
+    required String revisionId,
+    required String capitulo,
+  }) async {
     final res = await http.post(
       _u('/ai/chat'),
       headers: await _headers,
-      body: jsonEncode({'mensaje': mensaje, 'revisionId': revisionId}),
+      body: jsonEncode({'mensaje': mensaje, 'revisionId': revisionId, 'capitulo': capitulo}),
     );
     _checkOk(res);
     return (jsonDecode(res.body) as Map<String, dynamic>)['respuesta'] as String;
@@ -153,11 +160,17 @@ class ApiService {
     String seleccion,
     String pregunta, {
     required String revisionId,
+    required String capitulo,
   }) async {
     final res = await http.post(
       _u('/ai/preguntar-seleccion'),
       headers: await _headers,
-      body: jsonEncode({'seleccion': seleccion, 'pregunta': pregunta, 'revisionId': revisionId}),
+      body: jsonEncode({
+        'seleccion': seleccion,
+        'pregunta': pregunta,
+        'revisionId': revisionId,
+        'capitulo': capitulo,
+      }),
     );
     _checkOk(res);
     return (jsonDecode(res.body) as Map<String, dynamic>)['respuesta'] as String;

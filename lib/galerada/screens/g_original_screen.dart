@@ -30,6 +30,8 @@ class _GOriginalScreenState extends State<GOriginalScreen> {
   GAiAssistantController get _ai => _asistente ??= GAiAssistantController(
         api: context.read<ApiService>(),
         revisionId: widget.revisionId,
+        // Aquí "el capítulo" es literalmente el original: sin componer.
+        capituloActual: () => widget.chapter,
       );
 
   @override

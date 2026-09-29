@@ -31,10 +31,22 @@ class GAiMessage {
 /// instancia — sin histórico entre pantallas ni entre sesiones, igual que ya
 /// era el chat de IA antes de este rediseño.
 class GAiAssistantController extends ChangeNotifier {
-  GAiAssistantController({required this.api, required this.revisionId});
+  GAiAssistantController({
+    required this.api,
+    required this.revisionId,
+    required this.capituloActual,
+  });
 
   final ApiService api;
   final String revisionId;
+
+  /// El texto que se manda como contexto en cada mensaje — se llama de
+  /// nuevo en cada envío, nunca se guarda en frío, para que si haces una
+  /// edición a mitad de conversación la siguiente pregunta ya la vea. Cada
+  /// pantalla decide qué es "el capítulo" para ella: el compuesto con las
+  /// decisiones ya tomadas (revisor, vista previa) o el original literal
+  /// ("Ver original").
+  final String Function() capituloActual;
 
   static const double minHeight = 300;
   static const double maxHeight = 720;
@@ -98,9 +110,11 @@ class GAiAssistantController extends ChangeNotifier {
     notifyListeners();
     try {
       final seleccion = seleccionContexto;
+      final capitulo = capituloActual();
       final respuesta = seleccion != null
-          ? await api.preguntarSeleccion(seleccion, mensaje, revisionId: revisionId)
-          : await api.chat(mensaje, revisionId: revisionId);
+          ? await api.preguntarSeleccion(seleccion, mensaje,
+              revisionId: revisionId, capitulo: capitulo)
+          : await api.chat(mensaje, revisionId: revisionId, capitulo: capitulo);
       messages.add(GAiMessage(
         respuesta,
         false,

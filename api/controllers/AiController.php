@@ -5,9 +5,16 @@
  * fragmento seleccionado, y generación de sugerencias de edición en el mismo
  * formato que ya soporta la app.
  *
- *   POST /ai/chat                       -> {mensaje, revisionId?} -> {respuesta}
- *   POST /ai/preguntar-seleccion        -> {seleccion, pregunta, revisionId?} -> {respuesta}
+ *   POST /ai/chat                       -> {mensaje, revisionId?, capitulo?} -> {respuesta}
+ *   POST /ai/preguntar-seleccion        -> {seleccion, pregunta, revisionId?, capitulo?} -> {respuesta}
  *   POST /revisiones/{id}/ia-sugerencias -> {instruccion?, seed?} -> revisión completa
+ *
+ * `capitulo`, si viene, es el texto que el cliente use como contexto —
+ * compuesto con las decisiones ya tomadas en el revisor y en vista previa,
+ * o el original literal en "Ver original" —, y se usa tal cual sin volver
+ * a componerlo aquí (esa lógica solo existe en el cliente). Sin `capitulo`,
+ * se cae a leer `revisiones.chapter` por `revisionId`, que es siempre el
+ * original sin editar.
  */
 class AiController {
     /** `/ai/{accion}` — aquí `$id` hace de acción, igual que en /auth/{accion}. */
@@ -40,7 +47,7 @@ class AiController {
         }
         $prompt = $this->conContextoDelCapitulo(
             $mensaje,
-            trim($body['revisionId'] ?? ''),
+            $body,
             $userId,
             'Eres el asistente de escritura de un autor dentro de su revisor de capítulos. '
                 . 'Este es el capítulo que está revisando ahora mismo',
@@ -67,7 +74,7 @@ class AiController {
         }
         $prompt = $this->conContextoDelCapitulo(
             $pregunta,
-            trim($body['revisionId'] ?? ''),
+            $body,
             $userId,
             'Eres el asistente de escritura de un autor. Este es el capítulo del que forma '
                 . 'parte el fragmento sobre el que va a preguntar',
@@ -86,21 +93,27 @@ class AiController {
     /**
      * Sin el capítulo como contexto, la IA no tiene ni idea de qué capítulo
      * habla el autor — vital para que el chat libre y las preguntas sobre una
-     * selección tengan sentido. Con `revisionId` y comprobando que la
-     * revisión es del propio usuario, antepone el capítulo entero al mensaje;
-     * sin él (o si no se encuentra), se manda el mensaje tal cual en vez de
-     * fallar la petición entera.
+     * selección tengan sentido. Prioriza el `capitulo` que mande el cliente
+     * (el compuesto con las decisiones ya tomadas, o el original literal en
+     * "Ver original" — cada pantalla decide cuál le toca) y solo si no viene
+     * cae a leer `revisiones.chapter` por `revisionId` (que es siempre el
+     * original sin editar). Sin ninguno de los dos, se manda el mensaje tal
+     * cual en vez de fallar la petición entera.
      */
     private function conContextoDelCapitulo(
         string $mensaje,
-        string $revisionId,
+        array $body,
         int $userId,
         string $introduccion,
         string $etiquetaMensaje
     ): string {
-        if ($revisionId === '') return $mensaje;
-        $capitulo = $this->capituloDe($revisionId, $userId);
-        if ($capitulo === null) return $mensaje;
+        $capitulo = trim($body['capitulo'] ?? '');
+        if ($capitulo === '') {
+            $revisionId = trim($body['revisionId'] ?? '');
+            if ($revisionId === '') return $mensaje;
+            $capitulo = $this->capituloDe($revisionId, $userId) ?? '';
+            if ($capitulo === '') return $mensaje;
+        }
         return "{$introduccion}:\n\n\"\"\"\n{$capitulo}\n\"\"\"\n\n{$etiquetaMensaje}: {$mensaje}";
     }
 
