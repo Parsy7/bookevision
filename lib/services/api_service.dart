@@ -137,21 +137,27 @@ class ApiService {
 
   // ---------- Asistente de IA ----------
 
-  Future<String> chat(String mensaje) async {
+  /// `revisionId` es lo que le permite al servidor anteponer el capítulo
+  /// como contexto: sin él, la IA no tiene ni idea de qué capítulo se habla.
+  Future<String> chat(String mensaje, {required String revisionId}) async {
     final res = await http.post(
       _u('/ai/chat'),
       headers: await _headers,
-      body: jsonEncode({'mensaje': mensaje}),
+      body: jsonEncode({'mensaje': mensaje, 'revisionId': revisionId}),
     );
     _checkOk(res);
     return (jsonDecode(res.body) as Map<String, dynamic>)['respuesta'] as String;
   }
 
-  Future<String> preguntarSeleccion(String seleccion, String pregunta) async {
+  Future<String> preguntarSeleccion(
+    String seleccion,
+    String pregunta, {
+    required String revisionId,
+  }) async {
     final res = await http.post(
       _u('/ai/preguntar-seleccion'),
       headers: await _headers,
-      body: jsonEncode({'seleccion': seleccion, 'pregunta': pregunta}),
+      body: jsonEncode({'seleccion': seleccion, 'pregunta': pregunta, 'revisionId': revisionId}),
     );
     _checkOk(res);
     return (jsonDecode(res.body) as Map<String, dynamic>)['respuesta'] as String;

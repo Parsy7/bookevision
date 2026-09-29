@@ -99,8 +99,8 @@ class GAiAssistantController extends ChangeNotifier {
     try {
       final seleccion = seleccionContexto;
       final respuesta = seleccion != null
-          ? await api.preguntarSeleccion(seleccion, mensaje)
-          : await api.chat(mensaje);
+          ? await api.preguntarSeleccion(seleccion, mensaje, revisionId: revisionId)
+          : await api.chat(mensaje, revisionId: revisionId);
       messages.add(GAiMessage(
         respuesta,
         false,

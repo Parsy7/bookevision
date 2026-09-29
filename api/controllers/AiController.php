@@ -5,8 +5,8 @@
  * fragmento seleccionado, y generación de sugerencias de edición en el mismo
  * formato que ya soporta la app.
  *
- *   POST /ai/chat                       -> {mensaje} -> {respuesta}
- *   POST /ai/preguntar-seleccion        -> {seleccion, pregunta} -> {respuesta}
+ *   POST /ai/chat                       -> {mensaje, revisionId?} -> {respuesta}
+ *   POST /ai/preguntar-seleccion        -> {seleccion, pregunta, revisionId?} -> {respuesta}
  *   POST /revisiones/{id}/ia-sugerencias -> {instruccion?, seed?} -> revisión completa
  */
 class AiController {
@@ -19,10 +19,10 @@ class AiController {
         }
         switch ($id) {
             case 'chat':
-                $this->chat();
+                $this->chat($userId);
                 break;
             case 'preguntar-seleccion':
-                $this->preguntarSeleccion();
+                $this->preguntarSeleccion($userId);
                 break;
             default:
                 http_response_code(404);
@@ -30,7 +30,7 @@ class AiController {
         }
     }
 
-    private function chat(): void {
+    private function chat(int $userId): void {
         $body = json_body();
         $mensaje = trim($body['mensaje'] ?? '');
         if ($mensaje === '') {
@@ -38,28 +38,14 @@ class AiController {
             echo json_encode(['error' => 'Falta mensaje']);
             return;
         }
-        try {
-            $resultado = GeminiClient::generar($mensaje);
-        } catch (Throwable $e) {
-            http_response_code(502);
-            echo json_encode(['error' => $e->getMessage()]);
-            return;
-        }
-        echo json_encode(['respuesta' => $resultado['text']]);
-    }
-
-    private function preguntarSeleccion(): void {
-        $body = json_body();
-        $seleccion = trim($body['seleccion'] ?? '');
-        $pregunta = trim($body['pregunta'] ?? '');
-        if ($seleccion === '' || $pregunta === '') {
-            http_response_code(400);
-            echo json_encode(['error' => 'Faltan seleccion o pregunta']);
-            return;
-        }
-        $prompt = "Este es un fragmento de un capítulo de una novela:\n\n"
-            . "\"{$seleccion}\"\n\n"
-            . "Pregunta sobre ese fragmento: {$pregunta}";
+        $prompt = $this->conContextoDelCapitulo(
+            $mensaje,
+            trim($body['revisionId'] ?? ''),
+            $userId,
+            'Eres el asistente de escritura de un autor dentro de su revisor de capítulos. '
+                . 'Este es el capítulo que está revisando ahora mismo',
+            'Mensaje del autor'
+        );
         try {
             $resultado = GeminiClient::generar($prompt);
         } catch (Throwable $e) {
@@ -68,6 +54,65 @@ class AiController {
             return;
         }
         echo json_encode(['respuesta' => $resultado['text']]);
+    }
+
+    private function preguntarSeleccion(int $userId): void {
+        $body = json_body();
+        $seleccion = trim($body['seleccion'] ?? '');
+        $pregunta = trim($body['pregunta'] ?? '');
+        if ($seleccion === '' || $pregunta === '') {
+            http_response_code(400);
+            echo json_encode(['error' => 'Faltan seleccion o pregunta']);
+            return;
+        }
+        $prompt = $this->conContextoDelCapitulo(
+            $pregunta,
+            trim($body['revisionId'] ?? ''),
+            $userId,
+            'Eres el asistente de escritura de un autor. Este es el capítulo del que forma '
+                . 'parte el fragmento sobre el que va a preguntar',
+            "El autor seleccionó este fragmento del capítulo:\n\"{$seleccion}\"\n\nY pregunta"
+        );
+        try {
+            $resultado = GeminiClient::generar($prompt);
+        } catch (Throwable $e) {
+            http_response_code(502);
+            echo json_encode(['error' => $e->getMessage()]);
+            return;
+        }
+        echo json_encode(['respuesta' => $resultado['text']]);
+    }
+
+    /**
+     * Sin el capítulo como contexto, la IA no tiene ni idea de qué capítulo
+     * habla el autor — vital para que el chat libre y las preguntas sobre una
+     * selección tengan sentido. Con `revisionId` y comprobando que la
+     * revisión es del propio usuario, antepone el capítulo entero al mensaje;
+     * sin él (o si no se encuentra), se manda el mensaje tal cual en vez de
+     * fallar la petición entera.
+     */
+    private function conContextoDelCapitulo(
+        string $mensaje,
+        string $revisionId,
+        int $userId,
+        string $introduccion,
+        string $etiquetaMensaje
+    ): string {
+        if ($revisionId === '') return $mensaje;
+        $capitulo = $this->capituloDe($revisionId, $userId);
+        if ($capitulo === null) return $mensaje;
+        return "{$introduccion}:\n\n\"\"\"\n{$capitulo}\n\"\"\"\n\n{$etiquetaMensaje}: {$mensaje}";
+    }
+
+    private function capituloDe(string $revisionId, int $userId): ?string {
+        $stmt = get_pdo()->prepare(
+            'SELECT r.chapter FROM revisiones r
+               JOIN libros b ON b.id = r.libro_id
+              WHERE r.id = :id AND b.user_id = :user_id'
+        );
+        $stmt->execute(['id' => $revisionId, 'user_id' => $userId]);
+        $fila = $stmt->fetch();
+        return $fila ? $fila['chapter'] : null;
     }
 
     /** `POST /revisiones/{id}/ia-sugerencias`. */

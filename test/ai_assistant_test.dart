@@ -12,9 +12,33 @@ import 'soporte.dart';
 
 class _ApiLenta extends ApiFalsa {
   @override
-  Future<String> chat(String mensaje) async {
+  Future<String> chat(String mensaje, {required String revisionId}) async {
     await Future.delayed(const Duration(milliseconds: 500));
     return 'Tras pensarlo';
+  }
+}
+
+/// Se queda con el `revisionId` que le llegó, para comprobar que el chat
+/// libre y las preguntas sobre selección de verdad mandan el capítulo como
+/// contexto (vital: sin esto la IA no sabe de qué capítulo se habla).
+class _ApiQueRecuerdaElContexto extends ApiFalsa {
+  String? ultimoRevisionIdEnChat;
+  String? ultimoRevisionIdEnPreguntarSeleccion;
+
+  @override
+  Future<String> chat(String mensaje, {required String revisionId}) async {
+    ultimoRevisionIdEnChat = revisionId;
+    return 'Respuesta de mentira';
+  }
+
+  @override
+  Future<String> preguntarSeleccion(
+    String seleccion,
+    String pregunta, {
+    required String revisionId,
+  }) async {
+    ultimoRevisionIdEnPreguntarSeleccion = revisionId;
+    return 'Respuesta sobre la selección';
   }
 }
 
@@ -25,7 +49,7 @@ class _ApiFallaUnaVez extends ApiFalsa {
   int llamadas = 0;
 
   @override
-  Future<String> chat(String mensaje) async {
+  Future<String> chat(String mensaje, {required String revisionId}) async {
     llamadas++;
     if (llamadas == 1) throw Exception('Error API (502): saturado');
     return 'Ahora sí';
@@ -49,6 +73,23 @@ void main() {
   }
 
   group('GAiAssistantController', () {
+    test('el chat libre manda el revisionId, para que el servidor añada el capítulo',
+        () async {
+      final api = _ApiQueRecuerdaElContexto();
+      final c = GAiAssistantController(api: api, revisionId: 'cap-7');
+      c.abrir();
+      await c.enviar('¿Qué te parece este capítulo?');
+      expect(api.ultimoRevisionIdEnChat, 'cap-7');
+    });
+
+    test('preguntar sobre una selección también manda el revisionId', () async {
+      final api = _ApiQueRecuerdaElContexto();
+      final c = GAiAssistantController(api: api, revisionId: 'cap-7');
+      c.abrir(seleccion: 'un fragmento');
+      await c.enviar('¿Por qué?');
+      expect(api.ultimoRevisionIdEnPreguntarSeleccion, 'cap-7');
+    });
+
     test('empieza oculto y abre en modo panel', () {
       final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x');
       expect(c.mode, GAiAssistantMode.hidden);
