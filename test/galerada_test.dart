@@ -215,7 +215,7 @@ void main() {
     });
 
     testWidgets(
-        'arrastrar tras la pulsación larga selecciona en vez de editar y abre la IA',
+        'arrastrar tras la pulsación larga selecciona y ofrece "Preguntar a la IA"',
         (tester) async {
       await tester.pumpWidget(
           _app(const GReviewerScreen(reviewId: 'doc'), ApiFalsa(_documentoLargo())));
@@ -234,8 +234,15 @@ void main() {
 
       expect(find.text('Guardar'), findsNothing,
           reason: 'arrastrar tras la pulsación larga selecciona, no edita el bloque');
+      expect(find.text('Preguntar a la IA'), findsOneWidget,
+          reason: 'el fragmento arrastrado ofrece el mismo botón que Original/Vista previa');
+      expect(find.textContaining('Sobre:'), findsNothing,
+          reason: 'el panel no se abre solo, hay que tocar el botón');
+
+      await tester.tap(find.text('Preguntar a la IA'));
+      await tester.pump();
       expect(find.textContaining('Sobre:'), findsOneWidget,
-          reason: 'el panel de la IA se abre con el fragmento arrastrado como contexto');
+          reason: 'tocar el botón abre el panel con el fragmento como contexto');
 
       await tester.pump(const Duration(seconds: 2));
     });
@@ -254,13 +261,14 @@ void main() {
 
       final controlador = tester.widget<EditableText>(find.byType(EditableText)).controller;
       controlador.selection = const TextSelection(baseOffset: 2, extentOffset: 13); // "La promesa"
+      await tester.pump();
 
-      final campo = tester.widget<TextField>(find.byType(TextField));
-      final estado = tester.state<EditableTextState>(find.byType(EditableText));
-      final menu = campo.contextMenuBuilder!(tester.element(find.byType(TextField)), estado);
+      expect(find.text('Preguntar a la IA'), findsOneWidget,
+          reason: 'seleccionar ya en modo edición muestra el mismo botón flotante');
 
-      await tester.pumpWidget(MaterialApp(home: Material(child: menu)));
-      expect(find.text('Preguntar a la IA'), findsOneWidget);
+      await tester.tap(find.text('Preguntar a la IA'));
+      await tester.pump();
+      expect(find.textContaining('Sobre:'), findsOneWidget);
 
       await tester.pump(const Duration(seconds: 2));
     });

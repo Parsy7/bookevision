@@ -137,8 +137,11 @@ class GProseBlock extends StatefulWidget {
       onEditing;
 
   /// Con esto puesto, arrastrar el dedo tras la pulsación larga selecciona
-  /// texto (en vez de entrar en edición) y avisa con el fragmento elegido.
-  final void Function(String seleccion)? onPedirIa;
+  /// texto en vez de entrar en edición, y seleccionar dentro del campo ya en
+  /// modo edición también avisa — en ambos casos aparece el mismo botón
+  /// flotante "Preguntar a la IA" que ya usan "Ver original" y "Vista previa".
+  final void Function(String seleccion)? onSeleccionCambia;
+  final VoidCallback? onSeleccionVacia;
 
   const GProseBlock({
     super.key,
@@ -147,7 +150,8 @@ class GProseBlock extends StatefulWidget {
     required this.end,
     this.number,
     this.onEditing,
-    this.onPedirIa,
+    this.onSeleccionCambia,
+    this.onSeleccionVacia,
   });
 
   @override
@@ -179,10 +183,33 @@ class _GProseBlockState extends State<GProseBlock> {
   String get _blockId => 'b_${widget.start}_${widget.end}';
 
   @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onSeleccionEnCampo);
+  }
+
+  @override
   void dispose() {
+    _controller.removeListener(_onSeleccionEnCampo);
     _controller.dispose();
     _focus.dispose();
     super.dispose();
+  }
+
+  /// Ya en modo edición, seleccionar con las asas nativas del campo también
+  /// avisa — mismo botón flotante que el arrastre en modo lectura, en vez de
+  /// meterlo en el menú nativo de Cortar/Copiar/Pegar (que además de él ya
+  /// puede llevar 4 botones, y uno más ahí se recorta a una segunda página
+  /// fácil de no ver).
+  void _onSeleccionEnCampo() {
+    if (!_editing) return;
+    final seleccion =
+        _controller.selection.textInside(_controller.text).trim();
+    if (seleccion.isEmpty) {
+      widget.onSeleccionVacia?.call();
+    } else {
+      widget.onSeleccionCambia?.call(seleccion);
+    }
   }
 
   int _clamp(int v, int max) => v < 0 ? 0 : (v > max ? max : v);
@@ -206,7 +233,11 @@ class _GProseBlockState extends State<GProseBlock> {
     _inicioPulsacion = globalPosition;
     _inicioSeleccion = null;
     _finSeleccion = null;
-    _seleccionando = false;
+    // Una pulsación nueva invalida cualquier selección (y botón) anterior.
+    if (_seleccionando) {
+      setState(() => _seleccionando = false);
+      widget.onSeleccionVacia?.call();
+    }
   }
 
   /// Si el dedo se mueve más que el umbral, esto deja de ser "pulsación larga
@@ -232,17 +263,23 @@ class _GProseBlockState extends State<GProseBlock> {
   void _onLongPressEnd(ManualEdit? edit, String mostrado) {
     if (_seleccionando) {
       final ini = _inicioSeleccion, fin = _finSeleccion;
-      setState(() {
-        _seleccionando = false;
-        _inicioSeleccion = null;
-        _finSeleccion = null;
-      });
       _inicioPulsacion = null;
-      if (ini == null || fin == null) return;
-      final desde = ini < fin ? ini : fin;
-      final hasta = ini < fin ? fin : ini;
-      final fragmento = mostrado.substring(desde, hasta).trim();
-      if (fragmento.isNotEmpty) widget.onPedirIa?.call(fragmento);
+      final desde = (ini != null && fin != null) ? (ini < fin ? ini : fin) : null;
+      final hasta = (ini != null && fin != null) ? (ini < fin ? fin : ini) : null;
+      final fragmento =
+          (desde != null && hasta != null) ? mostrado.substring(desde, hasta).trim() : '';
+      if (fragmento.isEmpty) {
+        setState(() {
+          _seleccionando = false;
+          _inicioSeleccion = null;
+          _finSeleccion = null;
+        });
+        widget.onSeleccionVacia?.call();
+      } else {
+        // El resaltado se queda a la vista mientras el botón flotante espera
+        // el toque — desaparece al empezar una edición o una nueva selección.
+        widget.onSeleccionCambia?.call(fragmento);
+      }
       return;
     }
     final inicio = _inicioPulsacion;
@@ -251,6 +288,7 @@ class _GProseBlockState extends State<GProseBlock> {
   }
 
   void _startEdit(ManualEdit? edit, Offset globalPosition) {
+    widget.onSeleccionVacia?.call();
     final mostrado =
         (edit != null && !_showingOriginal) ? edit.value : widget.text;
     final valor = edit?.value ?? widget.text;
@@ -277,6 +315,7 @@ class _GProseBlockState extends State<GProseBlock> {
   void _terminar() {
     _focus.unfocus();
     setState(() => _editing = false);
+    widget.onSeleccionVacia?.call();
     final acciones = _acciones;
     _acciones = null;
     if (acciones != null) widget.onEditing?.call(acciones, activa: false);
@@ -416,30 +455,8 @@ class _GProseBlockState extends State<GProseBlock> {
         contentPadding: EdgeInsets.zero,
         border: InputBorder.none,
       ),
-      // Ya editando, seleccionar texto abre el menú nativo de Cortar/Copiar/
-      // Pegar de siempre (útil de verdad mientras se escribe) — aquí solo se
-      // le añade "Preguntar a la IA" cuando hay algo seleccionado.
-      contextMenuBuilder: widget.onPedirIa == null
-          ? null
-          : (context, state) {
-              final seleccion = state.textEditingValue.selection
-                  .textInside(state.textEditingValue.text)
-                  .trim();
-              final items = state.contextMenuButtonItems.toList();
-              if (seleccion.isNotEmpty) {
-                items.add(ContextMenuButtonItem(
-                  label: 'Preguntar a la IA',
-                  onPressed: () {
-                    state.hideToolbar();
-                    widget.onPedirIa!(seleccion);
-                  },
-                ));
-              }
-              return AdaptiveTextSelectionToolbar.buttonItems(
-                anchors: state.contextMenuAnchors,
-                buttonItems: items,
-              );
-            },
+      // Menú nativo de Cortar/Copiar/Pegar de siempre, sin tocar: "Preguntar
+      // a la IA" va en el botón flotante (ver _onSeleccionEnCampo), no aquí.
     );
   }
 

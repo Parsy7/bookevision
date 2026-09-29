@@ -10,6 +10,7 @@ import '../theme/g_colors.dart';
 import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
 import '../widgets/g_ai_assistant_overlay.dart';
+import '../widgets/g_ai_visuals.dart';
 import '../widgets/g_app_bar.dart';
 import '../widgets/g_bits.dart';
 import '../widgets/g_dialog.dart';
@@ -53,6 +54,7 @@ class _VistaState extends State<_Vista> {
   GProseEditActions? _edicion;
   bool _generandoIA = false;
   GAiAssistantController? _asistente;
+  String? _seleccionPill;
 
   @override
   void dispose() {
@@ -169,6 +171,22 @@ class _VistaState extends State<_Vista> {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => pantalla));
   }
 
+  void _seleccionCambia(String seleccion) {
+    setState(() => _seleccionPill = seleccion);
+  }
+
+  void _ocultarPill() {
+    if (_seleccionPill == null) return;
+    setState(() => _seleccionPill = null);
+  }
+
+  void _abrirDesdePill() {
+    final seleccion = _seleccionPill;
+    if (seleccion == null) return;
+    _asistente?.abrir(seleccion: seleccion);
+    _ocultarPill();
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = context.watch<ReviewSession>();
@@ -243,6 +261,8 @@ class _VistaState extends State<_Vista> {
         bottomNavigationBar:
             session.loadStatus == LoadStatus.ready ? _barra(session) : null,
           ),
+          if (_seleccionPill != null)
+            GAiSelectionPillOverlay(onTap: _abrirDesdePill),
           if (ai != null)
             GAiAssistantOverlay(controller: ai, extraBottomOffset: GSpacing.foot),
         ],
@@ -310,7 +330,8 @@ class _VistaState extends State<_Vista> {
           end: p.end,
           number: GParagraphs.at(chapter, p.start),
           onEditing: _cambioEdicion,
-          onPedirIa: ai == null ? null : (seleccion) => ai.abrir(seleccion: seleccion),
+          onSeleccionCambia: ai == null ? null : _seleccionCambia,
+          onSeleccionVacia: ai == null ? null : _ocultarPill,
         );
       case AffectedPiece():
       case InsertMarkerPiece():
