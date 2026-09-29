@@ -15,8 +15,25 @@
  * a componerlo aquí (esa lógica solo existe en el cliente). Sin `capitulo`,
  * se cae a leer `revisiones.chapter` por `revisionId`, que es siempre el
  * original sin editar.
+ *
+ * El chat libre y "preguntar sobre selección" llevan siempre delante
+ * `INSTRUCCION_SISTEMA`: le dice a la IA que es el asistente de escritura de
+ * BookeVision, qué puede hacer, y que no conteste temas ajenos al capítulo.
  */
 class AiController {
+    /**
+     * Identidad y alcance de la IA en el chat libre y en "preguntar sobre
+     * selección" — sin esto no sabe que es parte de BookeVision ni qué se
+     * espera de ella, y podría ponerse a hablar de cualquier cosa.
+     */
+    private const INSTRUCCION_SISTEMA =
+        'Eres el asistente de escritura de BookeVision, app para revisar capítulos de novelas. '
+        . 'Ayudas con: corrección ortográfica, gramatical y de puntuación (faltas, erratas, signos); '
+        . 'redacción y reescritura de frases o párrafos; ampliación de párrafos; inserción de '
+        . 'contenido nuevo; y dudas sobre el capítulo o un fragmento seleccionado. Cíñete solo a '
+        . 'la escritura del capítulo/novela — ante temas ajenos (tiempo, noticias, charla '
+        . 'genérica...), dilo brevemente y redirige al capítulo.';
+
     /** `/ai/{accion}` — aquí `$id` hace de acción, igual que en /auth/{accion}. */
     public function handle(string $method, ?string $id, int $userId): void {
         if ($method !== 'POST') {
@@ -110,11 +127,15 @@ class AiController {
         $capitulo = trim($body['capitulo'] ?? '');
         if ($capitulo === '') {
             $revisionId = trim($body['revisionId'] ?? '');
-            if ($revisionId === '') return $mensaje;
-            $capitulo = $this->capituloDe($revisionId, $userId) ?? '';
-            if ($capitulo === '') return $mensaje;
+            if ($revisionId !== '') {
+                $capitulo = $this->capituloDe($revisionId, $userId) ?? '';
+            }
         }
-        return "{$introduccion}:\n\n\"\"\"\n{$capitulo}\n\"\"\"\n\n{$etiquetaMensaje}: {$mensaje}";
+        if ($capitulo === '') {
+            return self::INSTRUCCION_SISTEMA . "\n\n{$etiquetaMensaje}: {$mensaje}";
+        }
+        return self::INSTRUCCION_SISTEMA
+            . "\n\n{$introduccion}:\n\n\"\"\"\n{$capitulo}\n\"\"\"\n\n{$etiquetaMensaje}: {$mensaje}";
     }
 
     private function capituloDe(string $revisionId, int $userId): ?string {
