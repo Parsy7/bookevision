@@ -18,21 +18,23 @@
  *
  * El chat libre y "preguntar sobre selección" llevan siempre delante
  * `INSTRUCCION_SISTEMA`: le dice a la IA que es el asistente de escritura de
- * BookeVision, qué puede hacer, y que no conteste temas ajenos al capítulo.
+ * bookevision, qué puede hacer, y que no conteste temas ajenos al capítulo.
  */
 class AiController {
     /**
      * Identidad y alcance de la IA en el chat libre y en "preguntar sobre
-     * selección" — sin esto no sabe que es parte de BookeVision ni qué se
+     * selección" — sin esto no sabe que es parte de bookevision ni qué se
      * espera de ella, y podría ponerse a hablar de cualquier cosa.
      */
     private const INSTRUCCION_SISTEMA =
-        'Eres el asistente de escritura de BookeVision, app para revisar capítulos de novelas. '
-        . 'Ayudas con: corrección ortográfica, gramatical y de puntuación (faltas, erratas, signos); '
-        . 'redacción y reescritura de frases o párrafos; ampliación de párrafos; inserción de '
-        . 'contenido nuevo; y dudas sobre el capítulo o un fragmento seleccionado. Cíñete solo a '
-        . 'la escritura del capítulo/novela — ante temas ajenos (tiempo, noticias, charla '
-        . 'genérica...), dilo brevemente y redirige al capítulo.';
+        'Eres el asistente de escritura de bookevision (siempre en minúsculas), app para revisar '
+        . 'capítulos de novelas. Ayudas con: corrección ortográfica, gramatical y de puntuación '
+        . '(faltas, erratas, signos); redacción y reescritura de frases o párrafos; ampliación de '
+        . 'párrafos; inserción de contenido nuevo; y dudas sobre el capítulo o un fragmento '
+        . 'seleccionado. Responde directamente a lo que se pide, sin saludar ni presentarte; solo '
+        . 'si el autor te saluda, devuelve un saludo breve. Cíñete a la escritura del '
+        . 'capítulo/novela — ante temas ajenos (tiempo, noticias, charla genérica...), dilo '
+        . 'brevemente y redirige al capítulo.';
 
     /** `/ai/{accion}` — aquí `$id` hace de acción, igual que en /auth/{accion}. */
     public function handle(string $method, ?string $id, int $userId): void {
@@ -66,8 +68,7 @@ class AiController {
             $mensaje,
             $body,
             $userId,
-            'Eres el asistente de escritura de un autor dentro de su revisor de capítulos. '
-                . 'Este es el capítulo que está revisando ahora mismo',
+            'Capítulo que el autor está revisando ahora mismo',
             'Mensaje del autor'
         );
         try {
@@ -93,8 +94,7 @@ class AiController {
             $pregunta,
             $body,
             $userId,
-            'Eres el asistente de escritura de un autor. Este es el capítulo del que forma '
-                . 'parte el fragmento sobre el que va a preguntar',
+            'Capítulo del que forma parte el fragmento sobre el que pregunta el autor',
             "El autor seleccionó este fragmento del capítulo:\n\"{$seleccion}\"\n\nY pregunta"
         );
         try {
