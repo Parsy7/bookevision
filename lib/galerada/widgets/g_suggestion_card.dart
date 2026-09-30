@@ -285,16 +285,8 @@ class _EditorState extends State<_Editor> {
       });
     }
 
-    Widget chip(String label, String modo) => InkWell(
-          onTap: () => _rellenar(modo),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-            decoration: BoxDecoration(
-              border: Border.all(color: GColors.ink, width: GSpacing.border),
-            ),
-            child: GMono(label),
-          ),
-        );
+    Widget chip(String label, String modo) =>
+        GChip(label, onTap: () => _rellenar(modo));
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -307,8 +299,8 @@ class _EditorState extends State<_Editor> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
+            spacing: GSpacing.chipGap,
+            runSpacing: GSpacing.chipGap,
             children: [
               if (!widget.insert) chip('Usar original', 'original'),
               chip('Usar propuesta', 'proposed'),

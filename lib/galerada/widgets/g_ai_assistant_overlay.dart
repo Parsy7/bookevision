@@ -6,16 +6,60 @@ import '../../utils/export_md.dart';
 import '../theme/g_colors.dart';
 import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
+import 'g_ai_markdown.dart';
 import 'g_ai_visuals.dart';
 import 'g_bits.dart';
+import 'g_button.dart';
+
+/// Lo que comparten todas las pantallas con asistente: el botón flotante
+/// "Preguntar a la IA" cuando hay texto seleccionado, y la burbuja/panel del
+/// chat. La pantalla solo avisa de la selección ([seleccionCambia] /
+/// [ocultarPill]) y envuelve su `Scaffold` con [conAsistente].
+mixin GAiConAsistente<T extends StatefulWidget> on State<T> {
+  String? _seleccion;
+  bool _anclable = true;
+
+  /// [anclable] en `false` cuando el fragmento no está tal cual en el
+  /// capítulo original (vista previa, "Escribir yo"): se puede preguntar
+  /// sobre él, pero la respuesta no se puede convertir en sugerencia.
+  void seleccionCambia(String seleccion, {bool anclable = true}) {
+    setState(() {
+      _seleccion = seleccion;
+      _anclable = anclable;
+    });
+  }
+
+  void ocultarPill() {
+    if (!mounted || _seleccion == null) return;
+    setState(() => _seleccion = null);
+  }
+
+  Widget conAsistente(
+    Widget pantalla,
+    GAiAssistantController? ai, {
+    double extraBottomOffset = 0,
+  }) {
+    final seleccion = _seleccion;
+    return Stack(
+      children: [
+        pantalla,
+        if (ai != null && seleccion != null)
+          GAiSelectionPillOverlay(onTap: () {
+            ai.abrir(seleccion: seleccion, anclable: _anclable);
+            ocultarPill();
+          }),
+        if (ai != null)
+          GAiAssistantOverlay(controller: ai, extraBottomOffset: extraBottomOffset),
+      ],
+    );
+  }
+}
 
 /// Asistente de IA flotante: una burbuja anclada abajo a la derecha que se
-/// expande en un panel de chat sin salir de la pantalla que lo aloja (el
-/// revisor, o el capítulo original), y que se puede volver a minimizar sin
-/// perder la conversación. Colocar como último hijo de un [Stack].
+/// expande en un panel de chat sin salir de la pantalla que lo aloja, y que
+/// se puede volver a minimizar sin perder la conversación. Colocar como
+/// último hijo de un [Stack] (lo hace [GAiConAsistente.conAsistente]).
 class GAiAssistantOverlay extends StatelessWidget {
-  static const _anchoMaxPanel = 600.0;
-
   final GAiAssistantController controller;
 
   /// Alto de lo que ya ocupe la esquina inferior derecha en esa pantalla
@@ -40,8 +84,8 @@ class GAiAssistantOverlay extends StatelessWidget {
             return const SizedBox.shrink();
           case GAiAssistantMode.bubble:
             return Positioned(
-              right: 12,
-              bottom: 12 + bottomSafe,
+              right: GSpacing.aiEdge,
+              bottom: GSpacing.aiEdge + bottomSafe,
               // `Material` porque este widget vive fuera del Scaffold (como
               // hermano suyo en el Stack de la pantalla): sin esto, cualquier
               // InkWell de dentro no encuentra ancestro y revienta.
@@ -54,27 +98,33 @@ class GAiAssistantOverlay extends StatelessWidget {
             // El teclado ocupa `viewInsets.bottom`: sin sumarlo aquí, el panel
             // (y su campo de texto) se queda debajo del teclado al escribir.
             final teclado = MediaQuery.viewInsetsOf(context).bottom;
-            // Todo el ancho menos el margen de 12 a cada lado; tope de 600
-            // para que en tablet no se convierta en una sábana.
-            final anchoDisponible = MediaQuery.sizeOf(context).width - 24;
-            final ancho = anchoDisponible.clamp(0, _anchoMaxPanel).toDouble();
-            final altoDisponible = MediaQuery.sizeOf(context).height - 140 - teclado - extraBottomOffset;
+            final pantalla = MediaQuery.sizeOf(context);
+            final ancho = (pantalla.width - 2 * GSpacing.aiEdge)
+                .clamp(0, GSpacing.aiPanelMax)
+                .toDouble();
+            final altoDisponible =
+                pantalla.height - GSpacing.aiPanelTop - teclado - extraBottomOffset;
             final alto = controller.panelHeight.clamp(
               GAiAssistantController.minHeight,
-              altoDisponible < GAiAssistantController.minHeight
-                  ? GAiAssistantController.minHeight
-                  : altoDisponible,
-            );
-            return Positioned(
-              right: 12,
-              bottom: 12 + bottomSafe + teclado,
-              child: Material(
-                type: MaterialType.transparency,
-                child: SizedBox(
-                  width: ancho,
-                  height: alto,
-                  child: _Panel(controller: controller),
-                ),
+              math.max(GAiAssistantController.minHeight, altoDisponible),
+            ).toDouble();
+            return Positioned.fill(
+              child: Stack(
+                children: [
+                  Positioned.fill(child: _Velo(onTap: controller.minimizar)),
+                  Positioned(
+                    right: GSpacing.aiEdge,
+                    bottom: GSpacing.aiEdge + bottomSafe + teclado,
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: SizedBox(
+                        width: ancho,
+                        height: alto,
+                        child: _Panel(controller: controller),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             );
         }
@@ -83,11 +133,29 @@ class GAiAssistantOverlay extends StatelessWidget {
   }
 }
 
-class _Burbuja extends StatelessWidget {
-  // 52dp: el mismo alto que GSpacing.actionBtn — pequeña pero sigue siendo
-  // un objetivo táctil cómodo, y molesta menos en la esquina.
-  static const _tamano = 52.0;
+/// Capa oscura detrás del panel abierto: lo separa del capítulo y, al
+/// tocarla, minimiza el chat.
+class _Velo extends StatelessWidget {
+  final VoidCallback onTap;
+  const _Velo({required this.onTap});
 
+  @override
+  Widget build(BuildContext context) {
+    final color = GColors.scrim;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 180),
+        builder: (context, t, _) =>
+            ColoredBox(color: color.withValues(alpha: color.a * t)),
+      ),
+    );
+  }
+}
+
+class _Burbuja extends StatelessWidget {
   final GAiAssistantController controller;
   const _Burbuja({required this.controller});
 
@@ -96,24 +164,24 @@ class _Burbuja extends StatelessWidget {
     return GestureDetector(
       onTap: () => controller.abrir(),
       child: SizedBox(
-        width: _tamano,
-        height: _tamano,
+        width: GSpacing.aiBubble,
+        height: GSpacing.aiBubble,
         child: Stack(
           alignment: Alignment.center,
           children: [
-            const GAiGlow(size: _tamano),
-            const GAiOrb(size: _tamano - 4),
+            const GAiGlow(size: GSpacing.aiBubble),
+            const GAiOrb(size: GSpacing.aiBubble - GSpacing.gapXs),
             if (controller.hayNuevo)
               Positioned(
-                top: 1,
-                right: 1,
+                top: GSpacing.border,
+                right: GSpacing.border,
                 child: Container(
-                  width: 12,
-                  height: 12,
+                  width: GSpacing.aiBadge,
+                  height: GSpacing.aiBadge,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: GColors.red,
-                    border: Border.all(color: GColors.paper, width: 2),
+                    border: Border.all(color: GColors.paper, width: GSpacing.aiBadgeRing),
                   ),
                 ),
               ),
@@ -134,7 +202,26 @@ class _Panel extends StatefulWidget {
 
 class _PanelState extends State<_Panel> {
   final _controller = TextEditingController();
-  final _scroll = ScrollController();
+  late final ScrollController _scroll;
+
+  /// Al abrir, el campo queda enfocado (se ve el cursor) pero sin teclado:
+  /// en solo lectura no abre conexión con el teclado. El primer toque lo
+  /// pasa a editable y, como ya tiene el foco, el teclado sale entonces.
+  bool _soloFoco = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final c = widget.controller;
+    _scroll = ScrollController(initialScrollOffset: c.scrollOffset ?? 0)
+      ..addListener(() => c.scrollOffset = _scroll.offset);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scroll.hasClients) return;
+      final max = _scroll.position.maxScrollExtent;
+      final guardado = c.scrollOffset;
+      if (guardado == null || guardado > max) _scroll.jumpTo(max);
+    });
+  }
 
   @override
   void dispose() {
@@ -159,17 +246,20 @@ class _PanelState extends State<_Panel> {
     if (texto.trim().isEmpty) return;
     _controller.clear();
     final envio = widget.controller.enviar(texto);
-    _scrollAlFinal(); // deja ver el mensaje propio y el "escribiendo…" ya mismo
+    _scrollAlFinal(); // deja ver el mensaje propio y el "pensando…" ya mismo
     await envio;
     _scrollAlFinal(); // y de nuevo al llegar la respuesta, por si la lista creció
   }
 
-  Future<void> _copiar(String texto) async {
-    await ExportMd.copy(texto);
-    if (!mounted) return;
+  void _avisar(String texto) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('COPIADO', style: GText.mono.copyWith(color: GColors.onInk))),
+      SnackBar(content: Text(texto, style: GText.mono.copyWith(color: GColors.onInk))),
     );
+  }
+
+  Future<void> _copiar(String texto) async {
+    await ExportMd.copy(GAiMarkdown.textoPlano(texto));
+    if (mounted) _avisar('COPIADO');
   }
 
   Future<void> _reintentar(GAiMessage msg) async {
@@ -179,70 +269,56 @@ class _PanelState extends State<_Panel> {
 
   Future<void> _convertir(GAiMessage msg) async {
     final ok = await widget.controller.convertirEnSugerencia(msg);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          ok ? 'SUGERENCIA AÑADIDA AL CAPÍTULO' : 'NO SE PUDO CONVERTIR EN SUGERENCIA',
-          style: GText.mono.copyWith(color: GColors.onInk),
-        ),
-      ),
-    );
+    if (mounted) {
+      _avisar(ok ? 'SUGERENCIA AÑADIDA AL CAPÍTULO' : 'NO SE PUDO CONVERTIR EN SUGERENCIA');
+    }
   }
+
+  Border get _linea => Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border));
 
   @override
   Widget build(BuildContext context) {
     final c = widget.controller;
     return Container(
-      decoration: BoxDecoration(color: GColors.sheet, border: Border.all(color: GColors.ink, width: GSpacing.border)),
+      decoration: BoxDecoration(
+        color: GColors.sheet,
+        border: Border.all(color: GColors.ink, width: GSpacing.border),
+      ),
       child: Column(
         children: [
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onVerticalDragUpdate: (d) => c.resize(-d.delta.dy),
             child: SizedBox(
-              height: 22,
+              height: GSpacing.aiHandle,
               child: Center(
-                child: Container(width: 36, height: 4, color: GColors.grey3),
+                child: Container(
+                  width: GSpacing.aiHandleW,
+                  height: GSpacing.aiHandleH,
+                  color: GColors.grey3,
+                ),
               ),
             ),
           ),
           Container(
-            padding: const EdgeInsets.fromLTRB(12, 2, 8, 10),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
-            ),
+            padding: const EdgeInsets.fromLTRB(
+                GSpacing.blockV, 0, GSpacing.gapSm, GSpacing.gapSm),
+            decoration: BoxDecoration(border: _linea),
             child: Row(
               children: [
-                const GAiSparkle(size: 15),
-                const SizedBox(width: 8),
+                const GAiSparkle(),
+                const SizedBox(width: GSpacing.gapSm),
                 const Expanded(child: GMono('Asistente IA')),
-                InkWell(
-                  onTap: c.minimizar,
-                  child: Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(border: Border.all(color: GColors.ink, width: GSpacing.border)),
-                    child: Icon(Icons.keyboard_arrow_down, size: 18, color: GColors.ink),
-                  ),
+                GIconButton(
+                  icon: Icons.keyboard_arrow_down,
+                  tooltip: 'Minimizar',
+                  outlined: true,
+                  onPressed: c.minimizar,
                 ),
               ],
             ),
           ),
-          if (c.seleccionContexto != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(GSpacing.gapSm),
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
-              ),
-              child: Text(
-                'Sobre: "${c.seleccionContexto}"',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: GText.context.copyWith(fontStyle: FontStyle.italic),
-              ),
-            ),
+          if (c.seleccionContexto != null) _Contexto(texto: c.seleccionContexto!),
           Expanded(
             child: c.messages.isEmpty && !c.enviando
                 ? Center(
@@ -260,9 +336,9 @@ class _PanelState extends State<_Panel> {
                     padding: const EdgeInsets.all(GSpacing.blockV),
                     itemCount: c.messages.length + (c.enviando ? 1 : 0),
                     itemBuilder: (_, i) {
-                      if (i == c.messages.length) return const _BurbujaEscribiendo();
+                      if (i == c.messages.length) return const _BurbujaPensando();
                       final mensaje = c.messages[i];
-                      return _Burbujita(
+                      return _Mensaje(
                         mensaje: mensaje,
                         onCopiar: () => _copiar(mensaje.texto),
                         onConvertir: () => _convertir(mensaje),
@@ -289,6 +365,12 @@ class _PanelState extends State<_Panel> {
                     ),
                     child: TextField(
                       controller: _controller,
+                      autofocus: true,
+                      readOnly: _soloFoco,
+                      showCursor: true,
+                      onTap: () {
+                        if (_soloFoco) setState(() => _soloFoco = false);
+                      },
                       style: GText.field,
                       cursorColor: GColors.blue,
                       cursorWidth: GSpacing.caret,
@@ -298,7 +380,7 @@ class _PanelState extends State<_Panel> {
                       onSubmitted: (_) => _enviar(),
                       decoration: InputDecoration(
                         isCollapsed: true,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(vertical: GSpacing.barTop),
                         border: InputBorder.none,
                         hintText: 'Escribe tu mensaje…',
                         hintStyle: GText.field.copyWith(color: GColors.grey3),
@@ -307,14 +389,10 @@ class _PanelState extends State<_Panel> {
                   ),
                 ),
                 const SizedBox(width: GSpacing.gapSm),
-                InkWell(
-                  onTap: c.enviando ? null : _enviar,
-                  child: Container(
-                    width: 38,
-                    height: 38,
-                    color: c.enviando ? GColors.grey3 : GColors.ink,
-                    child: Icon(Icons.arrow_upward, size: 18, color: GColors.onInk),
-                  ),
+                GIconButton(
+                  icon: Icons.arrow_upward,
+                  tooltip: 'Enviar',
+                  onPressed: c.enviando ? null : _enviar,
                 ),
               ],
             ),
@@ -325,14 +403,62 @@ class _PanelState extends State<_Panel> {
   }
 }
 
-class _Burbujita extends StatelessWidget {
+/// "Sobre: …" — el fragmento por el que se pregunta. Recortado a dos líneas;
+/// al tocarlo se ve entero (con scroll si es muy largo), y otro toque lo
+/// vuelve a recoger.
+class _Contexto extends StatefulWidget {
+  final String texto;
+  const _Contexto({required this.texto});
+
+  @override
+  State<_Contexto> createState() => _ContextoState();
+}
+
+class _ContextoState extends State<_Contexto> {
+  bool _abierto = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final estilo = GText.context.copyWith(fontStyle: FontStyle.italic);
+    final texto = 'Sobre: "${widget.texto}"';
+    return InkWell(
+      onTap: () => setState(() => _abierto = !_abierto),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(GSpacing.gapSm),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _abierto
+                  ? ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: GSpacing.aiContextMax),
+                      child: SingleChildScrollView(child: Text(texto, style: estilo)),
+                    )
+                  : Text(texto, maxLines: 2, overflow: TextOverflow.ellipsis, style: estilo),
+            ),
+            Icon(
+              _abierto ? Icons.expand_less : Icons.expand_more,
+              color: GColors.grey2,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Mensaje extends StatelessWidget {
   final GAiMessage mensaje;
   final VoidCallback onCopiar;
   final VoidCallback onConvertir;
   final VoidCallback onReintentar;
   final bool convirtiendo;
 
-  const _Burbujita({
+  const _Mensaje({
     required this.mensaje,
     required this.onCopiar,
     required this.onConvertir,
@@ -350,8 +476,7 @@ class _Burbujita extends StatelessWidget {
   }
 
   Widget _contenido(double anchoPanel) {
-    final esUsuario = mensaje.deUsuario;
-    if (esUsuario) {
+    if (mensaje.deUsuario) {
       return Align(
         alignment: Alignment.centerRight,
         child: Container(
@@ -359,7 +484,7 @@ class _Burbujita extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: GSpacing.gapSm),
           padding: const EdgeInsets.all(GSpacing.gapSm),
           color: GColors.ink,
-          child: Text(mensaje.texto, style: GText.block.copyWith(color: GColors.onInk, fontSize: 14.5)),
+          child: Text(mensaje.texto, style: GText.chat.copyWith(color: GColors.onInk)),
         ),
       );
     }
@@ -373,22 +498,21 @@ class _Burbujita extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(GSpacing.gapSm),
-              decoration: BoxDecoration(color: GColors.white, border: Border.all(color: GColors.ink, width: GSpacing.border)),
+              decoration: BoxDecoration(
+                color: GColors.white,
+                border: Border.all(color: GColors.ink, width: GSpacing.border),
+              ),
               child: Stack(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.only(right: 22),
-                    // Seleccionable con pulsación larga, como cualquier texto
-                    // nativo — para copiar solo un trozo, no el mensaje entero
-                    // (eso ya lo hace el icono de copiar de al lado).
-                    child: SelectableText(
-                      mensaje.texto,
-                      style: GText.block.copyWith(
-                        fontSize: 14.5,
+                    padding: const EdgeInsets.only(right: GSpacing.aiCopyGutter),
+                    // Seleccionable con pulsación larga, para copiar solo un
+                    // trozo (el mensaje entero ya lo copia el icono).
+                    child: SelectionArea(
+                      child: GAiMarkdown(
+                        mensaje.texto,
                         color: mensaje.esError ? GColors.red : null,
                       ),
-                      cursorColor: GColors.blue,
-                      cursorWidth: GSpacing.caret,
                     ),
                   ),
                   Positioned(
@@ -397,9 +521,11 @@ class _Burbujita extends StatelessWidget {
                     child: InkWell(
                       onTap: onCopiar,
                       child: Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(border: Border.all(color: GColors.grey3, width: GSpacing.border)),
+                        width: GSpacing.aiCopy,
+                        height: GSpacing.aiCopy,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: GColors.grey3, width: GSpacing.border),
+                        ),
                         child: Icon(Icons.copy, size: 11, color: GColors.grey2),
                       ),
                     ),
@@ -409,27 +535,16 @@ class _Burbujita extends StatelessWidget {
             ),
             if (mensaje.esError) ...[
               const SizedBox(height: GSpacing.gapXs),
-              InkWell(
-                onTap: onReintentar,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: GSpacing.gapSm, vertical: 5),
-                  decoration: BoxDecoration(border: Border.all(color: GColors.ink, width: GSpacing.border)),
-                  child: const GMono('Reintentar'),
-                ),
-              ),
+              GChip('Reintentar', onTap: onReintentar),
             ],
             if (mensaje.seed != null) ...[
               const SizedBox(height: GSpacing.gapXs),
-              InkWell(
+              GChip(
+                convirtiendo ? 'Convirtiendo…' : 'Usar como sugerencia',
                 onTap: convirtiendo ? null : onConvertir,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: GSpacing.gapSm, vertical: 5),
-                  color: convirtiendo ? GColors.grey3 : GColors.red,
-                  child: GMono(
-                    convirtiendo ? 'Convirtiendo…' : 'Usar como sugerencia',
-                    color: GColors.onRed,
-                  ),
-                ),
+                color: GColors.red,
+                onColor: GColors.onRed,
+                filled: true,
               ),
             ],
           ],
@@ -442,15 +557,22 @@ class _Burbujita extends StatelessWidget {
 /// Bocadillo de "la IA está pensando": una nube de pensamiento de cómic (con
 /// sus dos burbujitas de cola) y tres puntos con los colores de la IA que
 /// saltan por turnos mientras se espera la respuesta.
-class _BurbujaEscribiendo extends StatefulWidget {
-  const _BurbujaEscribiendo();
+class _BurbujaPensando extends StatefulWidget {
+  const _BurbujaPensando();
 
   @override
-  State<_BurbujaEscribiendo> createState() => _BurbujaEscribiendoState();
+  State<_BurbujaPensando> createState() => _BurbujaPensandoState();
 }
 
-class _BurbujaEscribiendoState extends State<_BurbujaEscribiendo>
+class _BurbujaPensandoState extends State<_BurbujaPensando>
     with SingleTickerProviderStateMixin {
+  // Geometría del dibujo (no son márgenes de maqueta): tamaño de los puntos,
+  // altura del salto y las dos burbujitas de la cola, de mayor a menor.
+  static const _punto = 8.0;
+  static const _salto = 5.0;
+  static const _cola = 9.0;
+  static const _colita = 5.0;
+
   late final AnimationController _c = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1200),
@@ -464,7 +586,7 @@ class _BurbujaEscribiendoState extends State<_BurbujaEscribiendo>
 
   /// 0 en reposo, 1 en lo alto del salto. Cada punto salta en la primera
   /// mitad de su ciclo y descansa en la segunda, así se ven "por turnos".
-  double _salto(int i) {
+  double _altura(int i) {
     final fase = ((_c.value - i * 0.16) % 1.0 + 1.0) % 1.0;
     if (fase > 0.5) return 0;
     return math.sin(fase * 2 * math.pi);
@@ -499,7 +621,8 @@ class _BurbujaEscribiendoState extends State<_BurbujaEscribiendo>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: GSpacing.gap, vertical: GSpacing.blockV),
                   decoration: BoxDecoration(
                     color: GColors.white,
                     borderRadius: const BorderRadius.all(Radius.circular(999)),
@@ -508,16 +631,16 @@ class _BurbujaEscribiendoState extends State<_BurbujaEscribiendo>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: List.generate(3, (i) {
-                      final s = _salto(i);
+                      final s = _altura(i);
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: GSpacing.gapXs / 2),
                         child: Transform.translate(
-                          offset: Offset(0, -5 * s),
+                          offset: Offset(0, -_salto * s),
                           child: Transform.scale(
                             scale: 1 + 0.15 * s,
                             child: Container(
-                              width: 8,
-                              height: 8,
+                              width: _punto,
+                              height: _punto,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: GAiColors.gradient[i],
@@ -530,12 +653,12 @@ class _BurbujaEscribiendoState extends State<_BurbujaEscribiendo>
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(left: 12, top: 3),
-                  child: _burbujita(9, 0.7 + 0.3 * respira),
+                  padding: const EdgeInsets.only(left: GSpacing.blockV, top: GSpacing.gapXs),
+                  child: _burbujita(_cola, 0.7 + 0.3 * respira),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(left: 6, top: 2),
-                  child: _burbujita(5, 0.7 + 0.3 * (1 - respira)),
+                  padding: const EdgeInsets.only(left: GSpacing.gapSm, top: GSpacing.gapXs / 2),
+                  child: _burbujita(_colita, 0.7 + 0.3 * (1 - respira)),
                 ),
               ],
             );

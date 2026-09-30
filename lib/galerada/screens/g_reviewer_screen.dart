@@ -10,7 +10,6 @@ import '../theme/g_colors.dart';
 import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
 import '../widgets/g_ai_assistant_overlay.dart';
-import '../widgets/g_ai_visuals.dart';
 import '../widgets/g_app_bar.dart';
 import '../widgets/g_bits.dart';
 import '../widgets/g_dialog.dart';
@@ -46,7 +45,7 @@ class _Vista extends StatefulWidget {
   State<_Vista> createState() => _VistaState();
 }
 
-class _VistaState extends State<_Vista> {
+class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
   List<ReaderPiece>? _pieces;
   String? _piecesForId;
   final Map<int, GlobalKey> _cardKeys = {};
@@ -54,8 +53,6 @@ class _VistaState extends State<_Vista> {
   GProseEditActions? _edicion;
   bool _generandoIA = false;
   GAiAssistantController? _asistente;
-  String? _seleccionPill;
-  bool _pillAnclable = true;
 
   @override
   void dispose() {
@@ -172,34 +169,6 @@ class _VistaState extends State<_Vista> {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => pantalla));
   }
 
-  void _seleccionCambia(String seleccion) {
-    setState(() {
-      _seleccionPill = seleccion;
-      _pillAnclable = true;
-    });
-  }
-
-  /// Lo escrito en "Escribir yo" no existe en el capítulo original, así que
-  /// la respuesta no se puede anclar como sugerencia.
-  void _seleccionEnEditor(String seleccion) {
-    setState(() {
-      _seleccionPill = seleccion;
-      _pillAnclable = false;
-    });
-  }
-
-  void _ocultarPill() {
-    if (!mounted || _seleccionPill == null) return;
-    setState(() => _seleccionPill = null);
-  }
-
-  void _abrirDesdePill() {
-    final seleccion = _seleccionPill;
-    if (seleccion == null) return;
-    _asistente?.abrir(seleccion: seleccion, anclable: _pillAnclable);
-    _ocultarPill();
-  }
-
   @override
   Widget build(BuildContext context) {
     final session = context.watch<ReviewSession>();
@@ -211,8 +180,7 @@ class _VistaState extends State<_Vista> {
       onPopInvoked: (didPop) {
         if (session.canSave) session.saveNow();
       },
-      child: Stack(
-        children: [
+      child: conAsistente(
           Scaffold(
         appBar: GAppBar(
           title: session.review?.title ?? 'Revisión',
@@ -274,11 +242,8 @@ class _VistaState extends State<_Vista> {
         bottomNavigationBar:
             session.loadStatus == LoadStatus.ready ? _barra(session) : null,
           ),
-          if (_seleccionPill != null)
-            GAiSelectionPillOverlay(onTap: _abrirDesdePill),
-          if (ai != null)
-            GAiAssistantOverlay(controller: ai, extraBottomOffset: GSpacing.foot),
-        ],
+          ai,
+          extraBottomOffset: GSpacing.foot,
       ),
     );
   }
@@ -343,8 +308,8 @@ class _VistaState extends State<_Vista> {
           end: p.end,
           number: GParagraphs.at(chapter, p.start),
           onEditing: _cambioEdicion,
-          onSeleccionCambia: ai == null ? null : _seleccionCambia,
-          onSeleccionVacia: ai == null ? null : _ocultarPill,
+          onSeleccionCambia: ai == null ? null : seleccionCambia,
+          onSeleccionVacia: ai == null ? null : ocultarPill,
         );
       case AffectedPiece():
       case InsertMarkerPiece():
@@ -366,8 +331,10 @@ class _VistaState extends State<_Vista> {
           child: GSuggestionCard(
             index: p.index,
             paragraphs: etiqueta,
-            onSeleccionCambia: ai == null ? null : _seleccionEnEditor,
-            onSeleccionVacia: ai == null ? null : _ocultarPill,
+            // Lo escrito a mano no existe en el original: no se puede anclar.
+            onSeleccionCambia:
+                ai == null ? null : (s) => seleccionCambia(s, anclable: false),
+            onSeleccionVacia: ai == null ? null : ocultarPill,
           ),
         );
     }

@@ -7,7 +7,6 @@ import '../../utils/export_md.dart';
 import '../theme/g_colors.dart';
 import '../theme/g_spacing.dart';
 import '../widgets/g_ai_assistant_overlay.dart';
-import '../widgets/g_ai_visuals.dart';
 import '../widgets/g_app_bar.dart';
 import '../widgets/g_bits.dart';
 import '../widgets/g_foot.dart';
@@ -39,9 +38,9 @@ class GPreviewScreen extends StatefulWidget {
   State<GPreviewScreen> createState() => _GPreviewScreenState();
 }
 
-class _GPreviewScreenState extends State<GPreviewScreen> {
+class _GPreviewScreenState extends State<GPreviewScreen>
+    with GAiConAsistente<GPreviewScreen> {
   GAiAssistantController? _asistente;
-  String? _seleccionPill;
 
   GAiAssistantController get _ai => _asistente ??= GAiAssistantController(
         api: context.read<ApiService>(),
@@ -57,68 +56,50 @@ class _GPreviewScreenState extends State<GPreviewScreen> {
     super.dispose();
   }
 
-  void _seleccionCambia(String seleccion) {
-    setState(() => _seleccionPill = seleccion);
-  }
-
-  void _ocultarPill() {
-    if (_seleccionPill == null) return;
-    setState(() => _seleccionPill = null);
-  }
-
-  void _abrirDesdePill() {
-    final seleccion = _seleccionPill;
-    if (seleccion == null) return;
-    _ai.abrir(seleccion: seleccion, anclable: false);
-    _ocultarPill();
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          appBar: const GAppBar(title: 'Vista previa'),
-          body: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: GSpacing.page, vertical: GSpacing.barTop),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: GColors.ink, width: GSpacing.border),
-                  ),
-                ),
-                child: GMono(
-                  '${widget.counts.done}/${widget.counts.total} resueltas · '
-                  '${widget.counts.pending} pendientes · '
-                  '${widget.counts.manual} ${widget.counts.manual == 1 ? 'editado' : 'editados'}',
+    return conAsistente(
+      Scaffold(
+        appBar: const GAppBar(title: 'Vista previa'),
+        body: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: GSpacing.page, vertical: GSpacing.barTop),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom:
+                      BorderSide(color: GColors.ink, width: GSpacing.border),
                 ),
               ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(GSpacing.page),
-                  child: GProseFlow(
-                    widget.text,
-                    onSeleccionCambia: _seleccionCambia,
-                    onSeleccionVacia: _ocultarPill,
-                  ),
+              child: GMono(
+                '${widget.counts.done}/${widget.counts.total} resueltas · '
+                '${widget.counts.pending} pendientes · '
+                '${widget.counts.manual} ${widget.counts.manual == 1 ? 'editado' : 'editados'}',
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(GSpacing.page),
+                child: GProseFlow(
+                  widget.text,
+                  onSeleccionCambia: (s) => seleccionCambia(s, anclable: false),
+                  onSeleccionVacia: ocultarPill,
                 ),
               ),
-            ],
-          ),
-          bottomNavigationBar: GFoot.unica(
-            label: 'Exportar .md',
-            icon: Icons.ios_share,
-            fill: GFootFill.ink,
-            onTap: () => ExportMd.share(widget.title, 'avance', widget.text),
-          ),
+            ),
+          ],
         ),
-        if (_seleccionPill != null)
-          GAiSelectionPillOverlay(onTap: _abrirDesdePill),
-        GAiAssistantOverlay(controller: _ai, extraBottomOffset: GSpacing.foot),
-      ],
+        bottomNavigationBar: GFoot.unica(
+          label: 'Exportar .md',
+          icon: Icons.ios_share,
+          fill: GFootFill.ink,
+          onTap: () => ExportMd.share(widget.title, 'avance', widget.text),
+        ),
+      ),
+      _ai,
+      extraBottomOffset: GSpacing.foot,
     );
   }
 }

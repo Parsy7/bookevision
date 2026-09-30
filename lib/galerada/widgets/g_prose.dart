@@ -462,32 +462,17 @@ class _GProseBlockState extends State<GProseBlock> {
 
   /// Ver original | Ver modificado | Restaurar, como en la pantalla 06.
   Widget _chips() {
-    Widget chip(String label, {bool activo = false, Color? color, required VoidCallback onTap}) {
-      final resuelto = color ?? GColors.ink;
-      return InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-          decoration: BoxDecoration(
-            color: activo ? resuelto : null,
-            border: Border.all(color: resuelto, width: GSpacing.border),
-          ),
-          child: GMono(label, color: activo ? GColors.onInk : resuelto),
-        ),
-      );
-    }
-
     return Wrap(
-      spacing: 6,
-      runSpacing: 6,
+      spacing: GSpacing.chipGap,
+      runSpacing: GSpacing.chipGap,
       children: [
-        chip('Ver original',
-            activo: _showingOriginal,
+        GChip('Ver original',
+            filled: _showingOriginal,
             onTap: () => setState(() => _showingOriginal = true)),
-        chip('Ver modificado',
-            activo: !_showingOriginal,
+        GChip('Ver modificado',
+            filled: !_showingOriginal,
             onTap: () => setState(() => _showingOriginal = false)),
-        chip('Restaurar', color: GColors.red, onTap: _restore),
+        GChip('Restaurar', color: GColors.red, onTap: _restore),
       ],
     );
   }

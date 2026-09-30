@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+import 'package:bookevision/galerada/theme/g_colors.dart';
 import 'package:bookevision/galerada/theme/g_theme.dart';
 import 'package:bookevision/galerada/widgets/g_ai_assistant_overlay.dart';
 import 'package:bookevision/services/api_service.dart';
@@ -16,6 +17,7 @@ class _ApiLenta extends ApiFalsa {
     String mensaje, {
     required String revisionId,
     required String capitulo,
+    List<Map<String, String>> historial = const [],
   }) async {
     await Future.delayed(const Duration(milliseconds: 500));
     return 'Tras pensarlo';
@@ -30,15 +32,19 @@ class _ApiQueRecuerdaElContexto extends ApiFalsa {
   String? ultimoCapituloEnChat;
   String? ultimoRevisionIdEnPreguntarSeleccion;
   String? ultimoCapituloEnPreguntarSeleccion;
+  List<Map<String, String>> ultimoHistorialEnChat = const [];
+  List<Map<String, String>> ultimoHistorialEnPreguntarSeleccion = const [];
 
   @override
   Future<String> chat(
     String mensaje, {
     required String revisionId,
     required String capitulo,
+    List<Map<String, String>> historial = const [],
   }) async {
     ultimoRevisionIdEnChat = revisionId;
     ultimoCapituloEnChat = capitulo;
+    ultimoHistorialEnChat = historial;
     return 'Respuesta de mentira';
   }
 
@@ -48,9 +54,11 @@ class _ApiQueRecuerdaElContexto extends ApiFalsa {
     String pregunta, {
     required String revisionId,
     required String capitulo,
+    List<Map<String, String>> historial = const [],
   }) async {
     ultimoRevisionIdEnPreguntarSeleccion = revisionId;
     ultimoCapituloEnPreguntarSeleccion = capitulo;
+    ultimoHistorialEnPreguntarSeleccion = historial;
     return 'Respuesta sobre la selección';
   }
 }
@@ -66,6 +74,7 @@ class _ApiFallaUnaVez extends ApiFalsa {
     String mensaje, {
     required String revisionId,
     required String capitulo,
+    List<Map<String, String>> historial = const [],
   }) async {
     llamadas++;
     if (llamadas == 1) throw Exception('Error API (502): saturado');
@@ -90,6 +99,32 @@ void main() {
   }
 
   group('GAiAssistantController', () {
+    test('cada mensaje lleva la conversación anterior, sin errores ni él mismo',
+        () async {
+      final api = _ApiQueRecuerdaElContexto();
+      final c = GAiAssistantController(api: api, revisionId: 'x', capituloActual: () => 'cap');
+
+      await c.enviar('Primera pregunta');
+      expect(api.ultimoHistorialEnChat, isEmpty, reason: 'el primer mensaje no tiene pasado');
+
+      c.messages.add(const GAiMessage('✕ fallo', false, esError: true));
+      await c.enviar('Hazlo más corto');
+      expect(api.ultimoHistorialEnChat, [
+        {'rol': 'autor', 'texto': 'Primera pregunta'},
+        {'rol': 'ia', 'texto': 'Respuesta de mentira'},
+      ]);
+    });
+
+    test('el historial se acota a los últimos turnos', () async {
+      final api = _ApiQueRecuerdaElContexto();
+      final c = GAiAssistantController(api: api, revisionId: 'x', capituloActual: () => 'cap');
+      for (var i = 0; i < 20; i++) {
+        await c.enviar('Pregunta $i');
+      }
+      expect(api.ultimoHistorialEnChat, hasLength(GAiAssistantController.maxTurnosHistorial));
+      expect(api.ultimoHistorialEnChat.last['texto'], 'Respuesta de mentira');
+    });
+
     test('el chat libre manda el capítulo actual como contexto', () async {
       final api = _ApiQueRecuerdaElContexto();
       final c = GAiAssistantController(
@@ -265,7 +300,7 @@ void main() {
       final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo')..abrir();
       await abrir(tester, c, ApiFalsa());
 
-      await tester.enterText(find.byType(TextField), 'Hola');
+      await escribirEnChat(tester, 'Hola');
       await tester.tap(find.byIcon(Icons.arrow_upward));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
@@ -275,7 +310,7 @@ void main() {
       expect(
         find.ancestor(
           of: find.text('Respuesta de mentira'),
-          matching: find.byType(SelectableText),
+          matching: find.byType(SelectionArea),
         ),
         findsOneWidget,
         reason: 'el texto de la IA se puede seleccionar con pulsación larga',
@@ -288,7 +323,7 @@ void main() {
       final c = GAiAssistantController(api: api, revisionId: 'x', capituloActual: () => 'un capitulo')..abrir();
       await abrir(tester, c, api);
 
-      await tester.enterText(find.byType(TextField), 'Hola');
+      await escribirEnChat(tester, 'Hola');
       await tester.tap(find.byIcon(Icons.arrow_upward));
       await tester.pump();
 
@@ -307,7 +342,7 @@ void main() {
       final c = GAiAssistantController(api: api, revisionId: 'x', capituloActual: () => 'un capitulo')..abrir();
       await abrir(tester, c, api);
 
-      await tester.enterText(find.byType(TextField), 'Hola');
+      await escribirEnChat(tester, 'Hola');
       await tester.tap(find.byIcon(Icons.arrow_upward));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
@@ -343,6 +378,83 @@ void main() {
       await tester.pump();
       expect(panel().width, 600, reason: 'tablet: no pasa de 600');
       expect(panel().right, 1000 - 12, reason: 'sigue pegado a la derecha');
+    });
+
+    testWidgets('al abrir, el campo tiene el foco pero no saca el teclado hasta tocarlo',
+        (tester) async {
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo')..abrir();
+      await abrir(tester, c, ApiFalsa());
+      await tester.pump();
+
+      final campo = tester.widget<EditableText>(find.byType(EditableText));
+      expect(campo.focusNode.hasFocus, isTrue, reason: 'se ve el cursor en el campo');
+      expect(tester.testTextInput.isVisible, isFalse, reason: 'sin teclado al abrir');
+
+      await tester.tap(find.byType(TextField));
+      await tester.pump();
+      await tester.pump();
+      expect(tester.testTextInput.isVisible, isTrue, reason: 'al tocarlo, teclado');
+    });
+
+    testWidgets('detrás del panel hay una capa oscura, y tocarla minimiza', (tester) async {
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo')..abrir();
+      await abrir(tester, c, ApiFalsa());
+      await tester.pump(const Duration(milliseconds: 300));
+
+      final capa = tester.widget<ColoredBox>(find
+          .descendant(of: find.byType(GAiAssistantOverlay), matching: find.byType(ColoredBox))
+          .first);
+      expect(capa.color, GColors.scrim);
+
+      await tester.tapAt(const Offset(5, 5)); // fuera del panel
+      await tester.pump();
+      expect(c.mode, GAiAssistantMode.bubble);
+    });
+
+    testWidgets('al reabrir, el chat vuelve a donde se había dejado', (tester) async {
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo');
+      for (var i = 0; i < 30; i++) {
+        c.messages.add(GAiMessage('Mensaje número $i', i.isEven));
+      }
+      c.abrir();
+      await abrir(tester, c, ApiFalsa());
+      await tester.pump();
+
+      ScrollPosition posicion() =>
+          tester.state<ScrollableState>(find.descendant(
+              of: find.byType(ListView), matching: find.byType(Scrollable))).position;
+      expect(posicion().pixels, posicion().maxScrollExtent,
+          reason: 'la primera vez abre por el final');
+
+      await tester.drag(find.byType(ListView), const Offset(0, 300));
+      await tester.pump(const Duration(seconds: 1)); // el sparkle no para: sin pumpAndSettle
+      final dejado = posicion().pixels;
+      expect(dejado, lessThan(posicion().maxScrollExtent));
+
+      c.minimizar();
+      await tester.pump();
+      c.abrir();
+      await tester.pump();
+      await tester.pump();
+      expect(posicion().pixels, dejado);
+    });
+
+    testWidgets('tocar "Sobre:" enseña la selección entera, y otro toque la recoge',
+        (tester) async {
+      final c = GAiAssistantController(api: ApiFalsa(), revisionId: 'x', capituloActual: () => 'un capitulo')
+        ..abrir(seleccion: List.filled(30, 'una frase larga').join(' '));
+      await abrir(tester, c, ApiFalsa());
+
+      Text sobre() => tester.widget<Text>(find.textContaining('Sobre:'));
+      expect(sobre().maxLines, 2);
+
+      await tester.tap(find.textContaining('Sobre:'));
+      await tester.pump();
+      expect(sobre().maxLines, isNull, reason: 'desplegado, sin recortar');
+
+      await tester.tap(find.textContaining('Sobre:'));
+      await tester.pump();
+      expect(sobre().maxLines, 2);
     });
 
     testWidgets('minimizar vuelve a mostrar la burbuja', (tester) async {

@@ -149,3 +149,40 @@ class GRule extends StatelessWidget {
   Widget build(BuildContext context) =>
       Container(height: GSpacing.border, color: GColors.ink);
 }
+
+/// Chip de acción en mono: borde de [color] y, si [filled], relleno de ese
+/// color con el rótulo en [onColor]. Sin [onTap] queda apagado en gris. Es el
+/// único sitio que pinta este chip (Ver original, Usar propuesta, Reintentar…).
+class GChip extends StatelessWidget {
+  final String label;
+  final VoidCallback? onTap;
+  final Color? color;
+  final Color? onColor;
+  final bool filled;
+
+  const GChip(
+    this.label, {
+    super.key,
+    required this.onTap,
+    this.color,
+    this.onColor,
+    this.filled = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final base = onTap == null ? GColors.grey3 : (color ?? GColors.ink);
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+            horizontal: GSpacing.chipH, vertical: GSpacing.chipV),
+        decoration: BoxDecoration(
+          color: filled ? base : null,
+          border: Border.all(color: base, width: GSpacing.border),
+        ),
+        child: GMono(label, color: filled ? (onColor ?? GColors.onInk) : base),
+      ),
+    );
+  }
+}

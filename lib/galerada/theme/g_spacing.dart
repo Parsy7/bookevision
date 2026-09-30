@@ -58,6 +58,48 @@ class GSpacing {
   static const double gapSm = 8;
   static const double gapXs = 4;
 
+  /// Padding de los chips en mono (Ver original, Reintentar…).
+  static const double chipH = 7;
+  static const double chipV = 5;
+  static const double chipGap = 6;
+
+  // ── Asistente de IA ──
+
+  /// Margen de la burbuja y del panel contra los bordes de la pantalla.
+  static const double aiEdge = 12;
+
+  /// Ancho máximo del panel del chat: en tablet no pasa de aquí.
+  static const double aiPanelMax = 600;
+
+  /// Aire que el panel deja siempre por encima (barra superior incluida).
+  static const double aiPanelTop = 140;
+
+  /// Diámetro de la burbuja minimizada: el alto de un botón de acción.
+  static const double aiBubble = actionBtn;
+
+  /// Punto de "respuesta nueva" sobre la burbuja, y su aro de papel.
+  static const double aiBadge = 12;
+  static const double aiBadgeRing = 2;
+
+  /// Zona táctil del tirador que estira el panel, y la barrita visible.
+  static const double aiHandle = 22;
+  static const double aiHandleW = 36;
+  static const double aiHandleH = 4;
+
+  /// Botoncito de copiar de cada respuesta, y el hueco que se le reserva al
+  /// texto para no quedar debajo.
+  static const double aiCopy = 20;
+  static const double aiCopyGutter = aiCopy + 2;
+
+  /// Píldora "Preguntar a la IA": alto, padding lateral y distancia a la
+  /// barra superior.
+  static const double aiPill = 44;
+  static const double aiPillH = 15;
+  static const double aiPillTop = 80;
+
+  /// Alto máximo del "Sobre: …" desplegado; más allá hace scroll.
+  static const double aiContextMax = 160;
+
   /// Padding de página para un scroll que llega al borde inferior: reserva el
   /// hueco de la barra de navegación de Android.
   static EdgeInsets pageScroll(BuildContext context) => EdgeInsets.fromLTRB(

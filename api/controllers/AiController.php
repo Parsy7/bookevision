@@ -5,8 +5,8 @@
  * fragmento seleccionado, y generación de sugerencias de edición en el mismo
  * formato que ya soporta la app.
  *
- *   POST /ai/chat                       -> {mensaje, revisionId?, capitulo?} -> {respuesta}
- *   POST /ai/preguntar-seleccion        -> {seleccion, pregunta, revisionId?, capitulo?} -> {respuesta}
+ *   POST /ai/chat                       -> {mensaje, revisionId?, capitulo?, historial?} -> {respuesta}
+ *   POST /ai/preguntar-seleccion        -> {seleccion, pregunta, revisionId?, capitulo?, historial?} -> {respuesta}
  *   POST /revisiones/{id}/ia-sugerencias -> {instruccion?, seed?} -> revisión completa
  *
  * `capitulo`, si viene, es el texto que el cliente use como contexto —
@@ -34,7 +34,12 @@ class AiController {
         . 'seleccionado. Responde directamente a lo que se pide, sin saludar ni presentarte; solo '
         . 'si el autor te saluda, devuelve un saludo breve. Cíñete a la escritura del '
         . 'capítulo/novela — ante temas ajenos (tiempo, noticias, charla genérica...), dilo '
-        . 'brevemente y redirige al capítulo.';
+        . 'brevemente y redirige al capítulo. Formato: solo **negrita**, *cursiva*, listas con '
+        . '"- ", títulos con "### " y citas con "> " para el texto propuesto; nada de tablas ni '
+        . 'bloques de código.';
+
+    /** Tope de turnos anteriores que se meten en el prompt. */
+    private const MAX_TURNOS_HISTORIAL = 20;
 
     /** `/ai/{accion}` — aquí `$id` hace de acción, igual que en /auth/{accion}. */
     public function handle(string $method, ?string $id, int $userId): void {
@@ -131,11 +136,32 @@ class AiController {
                 $capitulo = $this->capituloDe($revisionId, $userId) ?? '';
             }
         }
-        if ($capitulo === '') {
-            return self::INSTRUCCION_SISTEMA . "\n\n{$etiquetaMensaje}: {$mensaje}";
+        $prompt = self::INSTRUCCION_SISTEMA;
+        if ($capitulo !== '') {
+            $prompt .= "\n\n{$introduccion}:\n\n\"\"\"\n{$capitulo}\n\"\"\"";
         }
-        return self::INSTRUCCION_SISTEMA
-            . "\n\n{$introduccion}:\n\n\"\"\"\n{$capitulo}\n\"\"\"\n\n{$etiquetaMensaje}: {$mensaje}";
+        $historial = $this->historialDe($body);
+        if ($historial !== '') {
+            $prompt .= "\n\nConversación hasta ahora (ya estáis hablando: no saludes):\n\n{$historial}";
+        }
+        return $prompt . "\n\n{$etiquetaMensaje}: {$mensaje}";
+    }
+
+    /**
+     * `historial` = `[{rol: autor|ia, texto}]`, los turnos anteriores del
+     * chat. Lo que no tenga esa forma se ignora, y se acota por si un cliente
+     * manda de más.
+     */
+    private function historialDe(array $body): string {
+        $turnos = is_array($body['historial'] ?? null) ? $body['historial'] : [];
+        $lineas = [];
+        foreach (array_slice($turnos, -self::MAX_TURNOS_HISTORIAL) as $t) {
+            $texto = is_array($t) && is_string($t['texto'] ?? null) ? trim($t['texto']) : '';
+            if ($texto === '') continue;
+            $quien = ($t['rol'] ?? '') === 'ia' ? 'Asistente' : 'Autor';
+            $lineas[] = "{$quien}: {$texto}";
+        }
+        return implode("\n\n", $lineas);
     }
 
     private function capituloDe(string $revisionId, int $userId): ?string {

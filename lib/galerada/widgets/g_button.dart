@@ -69,8 +69,8 @@ class GButton extends StatelessWidget {
   }
 }
 
-/// Botón de icono de la barra superior: 40×40, relleno de tinta o con
-/// contorno.
+/// Botón de icono: 40×40, relleno de tinta o con contorno. Sin [onPressed]
+/// queda apagado en gris.
 class GIconButton extends StatelessWidget {
   final IconData icon;
   final String tooltip;
@@ -87,6 +87,7 @@ class GIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tinta = onPressed == null ? GColors.grey3 : GColors.ink;
     return Tooltip(
       message: tooltip,
       child: InkWell(
@@ -95,13 +96,13 @@ class GIconButton extends StatelessWidget {
           width: GSpacing.iconBtn,
           height: GSpacing.iconBtn,
           decoration: BoxDecoration(
-            color: outlined ? null : GColors.ink,
-            border: Border.all(color: GColors.ink, width: GSpacing.border),
+            color: outlined ? null : tinta,
+            border: Border.all(color: tinta, width: GSpacing.border),
           ),
           child: Icon(
             icon,
             size: 20,
-            color: outlined ? GColors.ink : GColors.onInk,
+            color: outlined ? tinta : GColors.onInk,
           ),
         ),
       ),

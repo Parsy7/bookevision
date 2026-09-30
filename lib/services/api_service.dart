@@ -142,15 +142,23 @@ class ApiService {
   /// corresponde: el compuesto con las decisiones ya tomadas (revisor, vista
   /// previa) o el original literal ("Ver original"). `revisionId` va de
   /// paso como respaldo del lado del servidor si `capitulo` llegara vacío.
+  /// `historial` son los turnos anteriores (`{rol: autor|ia, texto}`): sin
+  /// ellos cada mensaje le parece el primero a la IA.
   Future<String> chat(
     String mensaje, {
     required String revisionId,
     required String capitulo,
+    List<Map<String, String>> historial = const [],
   }) async {
     final res = await http.post(
       _u('/ai/chat'),
       headers: await _headers,
-      body: jsonEncode({'mensaje': mensaje, 'revisionId': revisionId, 'capitulo': capitulo}),
+      body: jsonEncode({
+        'mensaje': mensaje,
+        'revisionId': revisionId,
+        'capitulo': capitulo,
+        'historial': historial,
+      }),
     );
     _checkOk(res);
     return (jsonDecode(res.body) as Map<String, dynamic>)['respuesta'] as String;
@@ -161,6 +169,7 @@ class ApiService {
     String pregunta, {
     required String revisionId,
     required String capitulo,
+    List<Map<String, String>> historial = const [],
   }) async {
     final res = await http.post(
       _u('/ai/preguntar-seleccion'),
@@ -170,6 +179,7 @@ class ApiService {
         'pregunta': pregunta,
         'revisionId': revisionId,
         'capitulo': capitulo,
+        'historial': historial,
       }),
     );
     _checkOk(res);

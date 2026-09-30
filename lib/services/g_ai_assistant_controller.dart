@@ -27,9 +27,9 @@ class GAiMessage {
 }
 
 /// Estado del asistente flotante de IA: vive tanto como la pantalla que lo
-/// aloja (`GReviewerScreen` o `GOriginalScreen`), cada una con su propia
-/// instancia — sin histórico entre pantallas ni entre sesiones, igual que ya
-/// era el chat de IA antes de este rediseño.
+/// aloja, cada una con su propia instancia. Dentro de esa pantalla la IA
+/// recuerda la conversación (se le mandan los últimos turnos en cada
+/// petición); entre pantallas y entre sesiones, no.
 class GAiAssistantController extends ChangeNotifier {
   GAiAssistantController({
     required this.api,
@@ -59,6 +59,11 @@ class GAiAssistantController extends ChangeNotifier {
   bool convirtiendo = false;
   bool hayNuevo = false;
 
+  /// Dónde se quedó el scroll del chat al minimizarlo, para volver ahí al
+  /// reabrirlo. `null` = al final (primera vez, o hay una respuesta nueva
+  /// que no has visto).
+  double? scrollOffset;
+
   /// Si el fragmento en [seleccionContexto] no es una copia literal del
   /// capítulo original (p. ej. viene de la vista previa, ya compuesta con
   /// ediciones aplicadas), "Usar como sugerencia" no puede anclarlo — se
@@ -71,6 +76,7 @@ class GAiAssistantController extends ChangeNotifier {
   /// localizar tal cual en el capítulo original (vista previa).
   void abrir({String? seleccion, bool anclable = true}) {
     mode = GAiAssistantMode.panel;
+    if (hayNuevo) scrollOffset = null;
     hayNuevo = false;
     if (seleccion != null) {
       seleccionContexto = seleccion;
@@ -105,16 +111,37 @@ class GAiAssistantController extends ChangeNotifier {
     await _pedir(error.origenParaReintentar!);
   }
 
+  /// Turnos que se mandan como memoria de la conversación: suficientes para
+  /// que "hazlo más corto" o "¿y la segunda opción?" tengan sentido, sin
+  /// disparar el tamaño de cada petición.
+  static const int maxTurnosHistorial = 12;
+
+  /// La conversación antes de [mensaje], sin los avisos de error (no son
+  /// parte de lo hablado) ni el propio [mensaje], que va aparte.
+  List<Map<String, String>> _historialAntesDe(String mensaje) {
+    final previos = messages.where((m) => !m.esError).toList();
+    if (previos.isNotEmpty && previos.last.deUsuario && previos.last.texto == mensaje) {
+      previos.removeLast();
+    }
+    final desde = previos.length > maxTurnosHistorial ? previos.length - maxTurnosHistorial : 0;
+    return [
+      for (final m in previos.skip(desde))
+        {'rol': m.deUsuario ? 'autor' : 'ia', 'texto': m.texto},
+    ];
+  }
+
   Future<void> _pedir(String mensaje) async {
     enviando = true;
     notifyListeners();
     try {
       final seleccion = seleccionContexto;
       final capitulo = capituloActual();
+      final historial = _historialAntesDe(mensaje);
       final respuesta = seleccion != null
           ? await api.preguntarSeleccion(seleccion, mensaje,
-              revisionId: revisionId, capitulo: capitulo)
-          : await api.chat(mensaje, revisionId: revisionId, capitulo: capitulo);
+              revisionId: revisionId, capitulo: capitulo, historial: historial)
+          : await api.chat(mensaje,
+              revisionId: revisionId, capitulo: capitulo, historial: historial);
       messages.add(GAiMessage(
         respuesta,
         false,

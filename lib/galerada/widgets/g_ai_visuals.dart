@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/g_colors.dart';
+import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
 
 /// Degradado "IA": la única excepción visual de toda la piel Galerada, que
@@ -162,18 +163,18 @@ class GAiSelectionPill extends StatelessWidget {
           GAiGradientBorder(
             innerColor: GColors.sheet,
             child: Container(
-              height: 44,
+              height: GSpacing.aiPill,
               // Sin `alignment`: con él, `Container` envuelve el hijo en un
               // `Align` que se expande hasta el máximo disponible aunque el
               // contenido sea pequeño — la píldora acababa ocupando todo el
               // ancho de la pantalla en vez de ajustarse al texto.
-              padding: const EdgeInsets.symmetric(horizontal: 15),
+              padding: const EdgeInsets.symmetric(horizontal: GSpacing.aiPillH),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const GAiSparkle(size: 16),
-                  const SizedBox(width: 7),
-                  GAiGradientText(label, style: GText.mono.copyWith(fontSize: 10.5)),
+                  const GAiSparkle(),
+                  const SizedBox(width: GSpacing.gapSm),
+                  GAiGradientText(label, style: GText.mono),
                 ],
               ),
             ),
@@ -245,7 +246,7 @@ class GAiSelectionPillOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      top: 80 + MediaQuery.paddingOf(context).top,
+      top: GSpacing.aiPillTop + MediaQuery.paddingOf(context).top,
       left: 0,
       right: 0,
       child: Center(child: GAiSelectionPill(onTap: onTap)),

@@ -138,6 +138,13 @@ class GText {
   /// Cuerpo de un diálogo.
   static TextStyle get dialog => _read(size: 15, height: 1.5);
 
+  /// Mensajes del chat con la IA.
+  static TextStyle get chat => _read(size: 14.5, height: 1.55);
+
+  /// Títulos ("### Opción 1") dentro de una respuesta de la IA: titular de
+  /// la casa, como el de las tarjetas pero a escala del chat.
+  static TextStyle get chatTitle => _serif(size: 21, height: 1.15);
+
   // ---------- Etiquetas (JetBrains Mono, MAYÚSCULAS) ----------
 
   /// Etiquetas, metadatos, estados y sellos.

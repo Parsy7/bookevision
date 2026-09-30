@@ -184,8 +184,7 @@ void main() {
       await tester.pump();
       expect(find.textContaining('Sobre: "versión"'), findsOneWidget);
 
-      await tester.enterText(
-          find.widgetWithText(TextField, 'Escribe tu mensaje…'), '¿Mejor así?');
+      await escribirEnChat(tester, '¿Mejor así?');
       await tester.tap(find.byIcon(Icons.arrow_upward));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
@@ -401,7 +400,7 @@ void main() {
 
       expect(find.textContaining('Sobre:'), findsOneWidget);
 
-      await tester.enterText(find.byType(TextField), '¿Qué te parece?');
+      await escribirEnChat(tester, '¿Qué te parece?');
       await tester.tap(find.byIcon(Icons.arrow_upward));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));

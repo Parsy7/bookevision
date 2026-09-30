@@ -1,8 +1,21 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
 import 'package:bookevision/models/review.dart';
 import 'package:bookevision/models/review_state.dart';
 import 'package:bookevision/models/review_summary.dart';
 import 'package:bookevision/models/suggestion.dart';
 import 'package:bookevision/services/api_service.dart';
+
+/// Escribe en el campo del chat con la IA. Al abrirse, el campo tiene el
+/// foco pero no el teclado (va en solo lectura hasta el primer toque), así
+/// que hay que tocarlo antes, como haría el autor.
+Future<void> escribirEnChat(WidgetTester tester, String texto) async {
+  final campo = find.widgetWithText(TextField, 'Escribe tu mensaje…');
+  await tester.tap(campo);
+  await tester.pump();
+  await tester.enterText(campo, texto);
+}
 
 /// Frase que sustituye la única sugerencia de [revisionDePrueba].
 const fraseOriginal = 'su frase original';
@@ -57,6 +70,7 @@ class ApiFalsa extends ApiService {
     String mensaje, {
     required String revisionId,
     required String capitulo,
+    List<Map<String, String>> historial = const [],
   }) async =>
       'Respuesta de mentira';
 
@@ -66,6 +80,7 @@ class ApiFalsa extends ApiService {
     String pregunta, {
     required String revisionId,
     required String capitulo,
+    List<Map<String, String>> historial = const [],
   }) async =>
       'Respuesta sobre la selección';
 
