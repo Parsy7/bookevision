@@ -165,6 +165,16 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
     }
   }
 
+  Future<void> _alternarFinalizada(ReviewSession session) async {
+    final finalizar = !session.finalizada;
+    try {
+      await session.setFinalizada(finalizar);
+      _snack(finalizar ? 'Capítulo finalizado' : 'Capítulo reabierto');
+    } catch (e) {
+      if (mounted) _snack('No se pudo guardar: $e');
+    }
+  }
+
   void _abrir(Widget pantalla) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => pantalla));
   }
@@ -188,24 +198,34 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
             if (session.loadStatus == LoadStatus.ready) ...[
               _EstadoGuardado(status: session.saveStatus),
               GMenu(
-                items: const [
-                  GMenuItem(
+                items: [
+                  const GMenuItem(
                       label: 'Vista previa',
                       icon: Icons.visibility,
                       value: 'preview'),
-                  GMenuItem(
+                  const GMenuItem(
                       label: 'Exportar avance (.md)',
                       icon: Icons.ios_share,
                       value: 'export'),
-                  GMenuItem(
+                  const GMenuItem(
                       label: 'Ver original',
                       icon: Icons.menu_book,
                       value: 'original'),
-                  GMenuItem(
+                  const GMenuItem(
                       label: 'Generar sugerencias con IA',
                       icon: Icons.auto_awesome,
                       value: 'sugerencias_ia'),
-                  GMenuItem(
+                  if (session.esSuelto)
+                    session.finalizada
+                        ? const GMenuItem(
+                            label: 'Reabrir capítulo',
+                            icon: Icons.undo,
+                            value: 'finalizar')
+                        : const GMenuItem(
+                            label: 'Marcar como finalizado',
+                            icon: Icons.check,
+                            value: 'finalizar'),
+                  const GMenuItem(
                       label: 'Borrar decisiones',
                       icon: Icons.restart_alt,
                       value: 'reset',
@@ -230,6 +250,8 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
                         chapter: session.review!.chapter,
                         revisionId: session.review!.id,
                       ));
+                    case 'finalizar':
+                      _alternarFinalizada(session);
                     case 'reset':
                       _reset(session);
                   }

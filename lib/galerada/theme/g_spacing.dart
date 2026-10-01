@@ -58,6 +58,12 @@ class GSpacing {
   static const double gapSm = 8;
   static const double gapXs = 4;
 
+  /// Aire sobre la marca en la cabecera (hero) de las portadas.
+  static const double heroTop = 22;
+
+  /// Columna del número grande en las filas de una portada (01, 02…).
+  static const double rowNumber = 44;
+
   /// Padding de los chips en mono (Ver original, Reintentar…).
   static const double chipH = 7;
   static const double chipV = 5;

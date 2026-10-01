@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:bookevision/models/capitulo.dart';
 import 'package:bookevision/models/review.dart';
 import 'package:bookevision/models/review_state.dart';
 import 'package:bookevision/models/review_summary.dart';
@@ -84,6 +85,13 @@ class ApiFalsa extends ApiService {
   }) async =>
       'Respuesta sobre la selección';
 
+  /// Lo último que se marcó o reabrió, por revisión.
+  final Map<String, bool> finalizadas = {};
+
+  @override
+  Future<void> setFinalizada(String id, bool finalizada) async =>
+      finalizadas[id] = finalizada;
+
   int sugerenciasGeneradas = 0;
 
   @override
@@ -100,7 +108,7 @@ class ApiFalsa extends ApiService {
 /// Lista larga, para comprobar qué pasa con el último elemento del scroll.
 class ApiFalsaConVarias extends ApiFalsa {
   @override
-  Future<List<ReviewSummary>> getRevisiones({String? libroId}) async => [
+  Future<List<ReviewSummary>> getRevisiones({String? libroId, int? capituloId}) async => [
         for (var i = 1; i <= 8; i++)
           ReviewSummary(
             id: 'c$i',
@@ -110,11 +118,37 @@ class ApiFalsaConVarias extends ApiFalsa {
             resolved: i,
             manual: 0,
           ),
+        // Un capítulo suelto ya marcado como finalizado.
+        const ReviewSummary(
+          id: 'suelto',
+          format: 'la-jaula-rota-review-v4',
+          title: 'Versión final',
+          total: 0,
+          resolved: 0,
+          manual: 0,
+          finalizada: true,
+        ),
       ];
+
+  /// Lo que se movió, por revisión → capítulo de destino.
+  final Map<String, int> movidas = {};
+
+  @override
+  Future<List<Capitulo>> getCapitulos(int libroId) async => const [
+        Capitulo(id: 1, libroId: 1, numero: 13, titulo: 'XIII La huida', revisiones: 2, listas: 2),
+        Capitulo(id: 2, libroId: 1, numero: 14, titulo: 'XIV Primero la promesa', revisiones: 3, listas: 1),
+        Capitulo(id: 3, libroId: 1, numero: 15, titulo: 'XV El regreso'),
+      ];
+
+  @override
+  Future<void> moverRevision(String id, int capituloId) async => movidas[id] = capituloId;
 }
 
 /// Lista vacía, para la pantalla «Página en blanco».
 class ApiFalsaVacia extends ApiFalsa {
   @override
-  Future<List<ReviewSummary>> getRevisiones({String? libroId}) async => const [];
+  Future<List<ReviewSummary>> getRevisiones({String? libroId, int? capituloId}) async => const [];
+
+  @override
+  Future<List<Capitulo>> getCapitulos(int libroId) async => const [];
 }

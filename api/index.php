@@ -15,6 +15,7 @@ require_once __DIR__ . '/controllers/AuthController.php';
 require_once __DIR__ . '/controllers/LibroController.php';
 require_once __DIR__ . '/controllers/TemaController.php';
 require_once __DIR__ . '/controllers/ReviewController.php';
+require_once __DIR__ . '/controllers/CapituloController.php';
 require_once __DIR__ . '/controllers/StateController.php';
 require_once __DIR__ . '/SuggestionValidator.php';
 require_once __DIR__ . '/GeminiClient.php';
@@ -25,6 +26,8 @@ require_once __DIR__ . '/controllers/AiController.php';
 //   /api/index.php/libros
 //   /api/index.php/libros/{id}
 //   /api/index.php/temas
+//   /api/index.php/capitulos
+//   /api/index.php/capitulos/{id}
 //   /api/index.php/revisiones
 //   /api/index.php/revisiones/{id}
 //   /api/index.php/revisiones/{id}/estado
@@ -50,6 +53,9 @@ try {
             break;
         case 'temas':
             (new TemaController())->handle($method);
+            break;
+        case 'capitulos':
+            (new CapituloController())->handle($method, $id, $userId);
             break;
         case 'revisiones':
             if ($action === 'estado') {

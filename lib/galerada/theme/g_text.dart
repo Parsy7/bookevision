@@ -67,6 +67,10 @@ class GText {
   static TextStyle get hero =>
       _serif(size: 64, height: 0.9, letterSpacing: -0.64); // -.01em
 
+  /// Hero de «Mis libros»: el mismo titular, un punto por debajo.
+  static TextStyle get heroSm =>
+      _serif(size: 48, height: 0.95, letterSpacing: -0.48); // -.01em
+
   /// Título de la barra superior.
   static TextStyle get appBar => _serif(size: 26, height: 1);
 

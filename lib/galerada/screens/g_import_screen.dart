@@ -15,9 +15,10 @@ import '../widgets/g_foot.dart';
 /// Importar un capítulo: un `.md` suelto para leerlo y editarlo a mano, o una
 /// revisión con sus sugerencias (archivo `.json` o JSON pegado).
 class GImportScreen extends StatefulWidget {
-  final String libroId;
+  /// Capítulo al que va la revisión importada.
+  final int capituloId;
 
-  const GImportScreen({super.key, required this.libroId});
+  const GImportScreen({super.key, required this.capituloId});
 
   @override
   State<GImportScreen> createState() => _GImportScreenState();
@@ -89,7 +90,7 @@ class _GImportScreenState extends State<GImportScreen> {
     try {
       final review = await context
           .read<ApiService>()
-          .importRevision(json, libroId: widget.libroId);
+          .importRevision(json, capituloId: widget.capituloId);
       if (!mounted) return;
       Navigator.of(context).pop(review.id);
     } catch (e) {

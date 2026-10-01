@@ -106,6 +106,42 @@ class GMenu extends StatelessWidget {
 
   const GMenu({super.key, required this.items, required this.onSelected});
 
+  /// Las mismas filas, en una hoja desde abajo (las opciones de una fila al
+  /// mantenerla pulsada). Devuelve el `value` elegido, o `null` si se cierra.
+  static Future<String?> hoja(
+    BuildContext context, {
+    required String titulo,
+    required List<GMenuItem> items,
+  }) {
+    return showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: GColors.sheet,
+      barrierColor: GColors.scrim,
+      elevation: 0,
+      shape: Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(GSpacing.gap),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
+              ),
+              child: GMono.muted(titulo),
+            ),
+            for (var i = 0; i < items.length; i++)
+              InkWell(
+                onTap: () => Navigator.of(ctx).pop(items[i].value),
+                child: _GMenuFila(item: items[i], ultima: i == items.length - 1),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
@@ -125,35 +161,7 @@ class GMenu extends StatelessWidget {
             value: items[i].value,
             padding: EdgeInsets.zero,
             height: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: GSpacing.gap, vertical: GSpacing.card),
-              decoration: BoxDecoration(
-                border: i < items.length - 1
-                    ? Border(
-                        bottom: BorderSide(
-                            color: GColors.ink, width: GSpacing.border))
-                    : null,
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    items[i].icon,
-                    size: 20,
-                    color: items[i].danger ? GColors.red : GColors.ink,
-                  ),
-                  const SizedBox(width: GSpacing.blockV),
-                  Flexible(
-                    child: Text(
-                      items[i].label,
-                      style: GText.menu.copyWith(
-                        color: items[i].danger ? GColors.red : GColors.ink,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            child: _GMenuFila(item: items[i], ultima: i == items.length - 1),
           ),
       ],
       child: Container(
@@ -164,6 +172,34 @@ class GMenu extends StatelessWidget {
           border: Border.all(color: GColors.ink, width: GSpacing.border),
         ),
         child: Icon(Icons.more_horiz, size: 20, color: GColors.onInk),
+      ),
+    );
+  }
+}
+
+/// Una fila de [GMenu], igual en el desplegable y en [GMenu.hoja].
+class _GMenuFila extends StatelessWidget {
+  final GMenuItem item;
+  final bool ultima;
+
+  const _GMenuFila({required this.item, required this.ultima});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = item.danger ? GColors.red : GColors.ink;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: GSpacing.gap, vertical: GSpacing.card),
+      decoration: BoxDecoration(
+        border: ultima
+            ? null
+            : Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
+      ),
+      child: Row(
+        children: [
+          Icon(item.icon, size: 20, color: color),
+          const SizedBox(width: GSpacing.blockV),
+          Flexible(child: Text(item.label, style: GText.menu.copyWith(color: color))),
+        ],
       ),
     );
   }

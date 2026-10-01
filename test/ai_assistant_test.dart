@@ -452,7 +452,7 @@ void main() {
       await tester.pump();
       expect(sobre().maxLines, isNull, reason: 'desplegado, sin recortar');
 
-      await tester.tap(find.textContaining('Sobre:'));
+      await tester.tap(find.byIcon(Icons.expand_less));
       await tester.pump();
       expect(sobre().maxLines, 2);
     });

@@ -32,7 +32,7 @@ class LibroController {
         $stmt = $pdo->prepare(
             "SELECT
                 l.id, l.title, l.created_at, l.updated_at,
-                (SELECT COUNT(*) FROM revisiones r WHERE r.libro_id = l.id) AS capitulos
+                (SELECT COUNT(*) FROM capitulos c WHERE c.libro_id = l.id) AS capitulos
              FROM libros l
              WHERE l.user_id = :user_id
              ORDER BY l.updated_at DESC"

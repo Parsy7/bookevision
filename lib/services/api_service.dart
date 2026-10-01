@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
+import '../models/capitulo.dart';
 import '../models/libro.dart';
 import '../models/review.dart';
 import '../models/review_summary.dart';
@@ -73,10 +74,51 @@ class ApiService {
     return (decoded['tema_id'] as num?)?.toInt();
   }
 
+  // ---------- Capítulos ----------
+
+  Future<List<Capitulo>> getCapitulos(int libroId) async {
+    final res = await http.get(_u('/capitulos?libro_id=$libroId'), headers: await _headers);
+    _checkOk(res);
+    final list = jsonDecode(res.body) as List;
+    return list.map((e) => Capitulo.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// Sin [numero], el servidor le pone el siguiente al mayor del libro.
+  Future<Capitulo> createCapitulo(int libroId, String titulo, {int? numero}) async {
+    final res = await http.post(
+      _u('/capitulos'),
+      headers: await _headers,
+      body: jsonEncode({'libro_id': libroId, 'titulo': titulo, if (numero != null) 'numero': numero}),
+    );
+    _checkOk(res);
+    return Capitulo.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  Future<Capitulo> updateCapitulo(int id, {String? titulo, int? numero}) async {
+    final res = await http.put(
+      _u('/capitulos/$id'),
+      headers: await _headers,
+      body: jsonEncode({if (titulo != null) 'titulo': titulo, if (numero != null) 'numero': numero}),
+    );
+    _checkOk(res);
+    return Capitulo.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  /// Borra el capítulo y todas sus revisiones.
+  Future<void> deleteCapitulo(int id) async {
+    final res = await http.delete(_u('/capitulos/$id'), headers: await _headers);
+    _checkOk(res);
+  }
+
   // ---------- Revisiones ----------
 
-  Future<List<ReviewSummary>> getRevisiones({String? libroId}) async {
-    final path = libroId == null ? '/revisiones' : '/revisiones?libro_id=$libroId';
+  /// Las de un capítulo ([capituloId]) o las de un libro entero ([libroId]).
+  Future<List<ReviewSummary>> getRevisiones({String? libroId, int? capituloId}) async {
+    final path = capituloId != null
+        ? '/revisiones?capitulo_id=$capituloId'
+        : libroId == null
+            ? '/revisiones'
+            : '/revisiones?libro_id=$libroId';
     final res = await http.get(_u(path), headers: await _headers);
     _checkOk(res);
     final list = jsonDecode(res.body) as List;
@@ -94,8 +136,16 @@ class ApiService {
   /// Importa una revisión desde el JSON que el usuario pega/carga (formato
   /// `la-jaula-rota-review-v4` o un estado `la-jaula-rota-state-v2`). Devuelve
   /// la revisión ya creada. Lanza si el id ya existía (409).
-  Future<Review> importRevision(Map<String, dynamic> json, {String? libroId}) async {
-    final body = libroId == null ? json : {...json, 'libro_id': libroId};
+  Future<Review> importRevision(
+    Map<String, dynamic> json, {
+    String? libroId,
+    int? capituloId,
+  }) async {
+    final body = {
+      ...json,
+      if (libroId != null) 'libro_id': libroId,
+      if (capituloId != null) 'capitulo_id': capituloId,
+    };
     final res = await http.post(
       _u('/revisiones'),
       headers: await _headers,
@@ -103,6 +153,23 @@ class ApiService {
     );
     _checkOk(res);
     return Review.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  /// Mueve la revisión a otro capítulo del mismo libro.
+  Future<void> moverRevision(String id, int capituloId) =>
+      _actualizarRevision(id, {'capitulo_id': capituloId});
+
+  /// Marca (o reabre) un capítulo suelto como terminado.
+  Future<void> setFinalizada(String id, bool finalizada) =>
+      _actualizarRevision(id, {'finalizada': finalizada});
+
+  Future<void> _actualizarRevision(String id, Map<String, dynamic> cambios) async {
+    final res = await http.put(
+      _u('/revisiones/$id'),
+      headers: await _headers,
+      body: jsonEncode(cambios),
+    );
+    _checkOk(res);
   }
 
   Future<void> deleteRevision(String id) async {

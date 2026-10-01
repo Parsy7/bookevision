@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../models/capitulo.dart';
+import '../../models/libro.dart';
 import '../../models/review_summary.dart';
 import '../../services/api_service.dart';
 import '../theme/g_colors.dart';
 import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
 import '../widgets/g_bits.dart';
-import '../widgets/g_button.dart';
 import '../widgets/g_dialog.dart';
+import '../widgets/g_lista.dart';
 import 'g_import_screen.dart';
 import 'g_reviewer_screen.dart';
 
-/// Portada de un libro: el hero con su título y una fila por capítulo, con
-/// su número, su medidor de sugerencias y su sello de estado.
+/// Portada de un capítulo: una fila por revisión, con su medidor de
+/// sugerencias y su sello de estado.
 class GReviewListScreen extends StatefulWidget {
-  final int libroId;
-  final String libroTitle;
+  final Libro libro;
+  final Capitulo capitulo;
 
   const GReviewListScreen({
     super.key,
-    required this.libroId,
-    required this.libroTitle,
+    required this.libro,
+    required this.capitulo,
   });
 
   @override
@@ -38,9 +39,7 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
   }
 
   void _reload() {
-    _future = context
-        .read<ApiService>()
-        .getRevisiones(libroId: widget.libroId.toString());
+    _future = context.read<ApiService>().getRevisiones(capituloId: widget.capitulo.id);
   }
 
   Future<void> _refresh() async {
@@ -50,9 +49,7 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
 
   Future<void> _openImport() async {
     final id = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (_) => GImportScreen(libroId: widget.libroId.toString()),
-      ),
+      MaterialPageRoute(builder: (_) => GImportScreen(capituloId: widget.capitulo.id)),
     );
     if (!mounted) return;
     await _refresh();
@@ -63,6 +60,51 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
     Navigator.of(context)
         .push(MaterialPageRoute(builder: (_) => GReviewerScreen(reviewId: id)))
         .then((_) => _refresh());
+  }
+
+  Future<void> _opciones(ReviewSummary r) async {
+    final opcion = await GMenu.hoja(
+      context,
+      titulo: r.title,
+      items: const [
+        GMenuItem(label: 'Mover a otro capítulo', icon: Icons.drive_file_move_outline, value: 'mover'),
+        GMenuItem(label: 'Borrar revisión', icon: Icons.delete_outline, value: 'borrar', danger: true),
+      ],
+    );
+    if (!mounted) return;
+    switch (opcion) {
+      case 'mover':
+        await _mover(r);
+      case 'borrar':
+        await _delete(r);
+    }
+  }
+
+  Future<void> _mover(ReviewSummary r) async {
+    final api = context.read<ApiService>();
+    try {
+      final otros = (await api.getCapitulos(widget.libro.id))
+          .where((c) => c.id != widget.capitulo.id)
+          .toList();
+      if (!mounted) return;
+      if (otros.isEmpty) {
+        _snack('Este libro no tiene más capítulos');
+        return;
+      }
+      final elegido = await GMenu.hoja(
+        context,
+        titulo: 'Mover a…',
+        items: [
+          for (final c in otros)
+            GMenuItem(label: '${c.numero} · ${c.titulo}', icon: Icons.menu_book, value: '${c.id}'),
+        ],
+      );
+      if (elegido == null || !mounted) return;
+      await api.moverRevision(r.id, int.parse(elegido));
+      await _refresh();
+    } catch (e) {
+      if (mounted) _snack('No se pudo mover: $e');
+    }
   }
 
   Future<void> _delete(ReviewSummary r) async {
@@ -85,272 +127,35 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
   void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg.toUpperCase(),
-            style: GText.mono.copyWith(color: GColors.onInk)),
+        content: Text(msg.toUpperCase(), style: GText.mono.copyWith(color: GColors.onInk)),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: FutureBuilder<List<ReviewSummary>>(
-          future: _future,
-          builder: (context, snap) {
-            if (snap.connectionState == ConnectionState.waiting) {
-              return Center(
-                  child: CircularProgressIndicator(color: GColors.ink));
-            }
-            if (snap.hasError) {
-              return _Error(error: snap.error!, onRetry: _refresh);
-            }
-            final items = snap.data ?? const [];
-            if (items.isEmpty) return _Vacia(onImport: _openImport);
-
-            return Stack(
-              children: [
-                RefreshIndicator(
-                  color: GColors.ink,
-                  backgroundColor: GColors.sheet,
-                  onRefresh: _refresh,
-                  child: ListView.builder(
-                    padding: EdgeInsets.only(
-                      bottom: GSpacing.fab +
-                          GSpacing.page * 2 +
-                          MediaQuery.paddingOf(context).bottom,
-                    ),
-                    itemCount: items.length + 1,
-                    itemBuilder: (_, i) {
-                      if (i == 0) {
-                        return _Hero(
-                          numero: items.length,
-                          titulo: widget.libroTitle,
-                          subtitulo: '${items.length} '
-                              '${items.length == 1 ? 'capítulo' : 'capítulos'} '
-                              'en revisión',
-                        );
-                      }
-                      final r = items[i - 1];
-                      return _Fila(
-                        numero: i,
-                        review: r,
-                        onTap: () => _openReview(r.id),
-                        onDelete: () => _delete(r),
-                      );
-                    },
-                  ),
-                ),
-                Positioned(
-                  right: GSpacing.page,
-                  bottom: GSpacing.page + MediaQuery.paddingOf(context).bottom,
-                  child: GFab(
-                    label: 'Importar',
-                    icon: Icons.add,
-                    onPressed: _openImport,
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-/// Cabecera de la portada: marca en mono, título del libro a 64px con la
-/// palabra clave en rojo, y el subtítulo en cursiva.
-class _Hero extends StatelessWidget {
-  final int numero;
-  final String subtitulo;
-  final String titulo;
-
-  /// Segunda palabra del título, en rojo — solo tiene sentido para el juego
-  /// de palabras de la pantalla vacía («Página en blanco»). `null` pinta
-  /// `titulo` entero en tinta, que es lo normal para el título real de un
-  /// libro (dato dinámico, ya no un titular fijo partido en dos colores).
-  final String? tituloEm;
-
-  const _Hero({
-    required this.numero,
-    required this.subtitulo,
-    required this.titulo,
-    this.tituloEm,
-  });
+  GHero _hero(int numero, {String? titulo, String? tituloEm}) => GHero(
+        titulo: titulo ?? widget.capitulo.titulo,
+        tituloEm: tituloEm,
+        subtitulo: numero == 0
+            ? 'Aún no hay revisiones'
+            : '$numero ${numero == 1 ? 'revisión' : 'revisiones'} · ${widget.libro.title}',
+        meta: 'Capítulo ${widget.capitulo.numero.toString().padLeft(2, '0')}',
+        onVolver: () => Navigator.of(context).maybePop(),
+      );
 
   @override
   Widget build(BuildContext context) {
-    final fecha = DateFormat('MMM y', 'es').format(DateTime.now());
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(
-          GSpacing.page, 22, GSpacing.page, GSpacing.gap),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).maybePop(),
-                    child: const GMono.muted('← Volver'),
-                  ),
-                  const SizedBox(width: GSpacing.gap),
-                  const GMono('BookeVision'),
-                ],
-              ),
-              GMono.muted('Nº ${numero.toString().padLeft(2, '0')} · $fecha'),
-            ],
-          ),
-          const SizedBox(height: GSpacing.barTop),
-          Text.rich(
-            TextSpan(
-              style: GText.hero,
-              children: [
-                TextSpan(text: titulo),
-                if (tituloEm != null)
-                  TextSpan(
-                      text: tituloEm,
-                      style: GText.hero.copyWith(color: GColors.red)),
-              ],
-            ),
-          ),
-          const SizedBox(height: GSpacing.gapSm),
-          Text(subtitulo, style: GText.heroSub),
-        ],
-      ),
-    );
-  }
-}
-
-/// Fila de capítulo: número | título + metadatos + medidor | sello.
-class _Fila extends StatelessWidget {
-  final int numero;
-  final ReviewSummary review;
-  final VoidCallback onTap;
-  final VoidCallback onDelete;
-
-  const _Fila({
-    required this.numero,
-    required this.review,
-    required this.onTap,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final suelto = review.isDocument;
-    final meta = StringBuffer(suelto
-        ? 'Capítulo suelto'
-        : '${review.total} ${review.total == 1 ? 'sugerencia' : 'sugerencias'}');
-    if (review.manual > 0) meta.write(' · ${review.manual} a mano');
-
-    return Dismissible(
-      key: ValueKey(review.id),
-      direction: DismissDirection.endToStart,
-      confirmDismiss: (_) async {
-        onDelete();
-        return false; // el borrado lo confirma el diálogo, no el gesto
-      },
-      background: Container(
-        color: GColors.red,
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: GSpacing.page),
-        child: GMono('Borrar', color: GColors.onRed),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: onDelete,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: GSpacing.page, vertical: GSpacing.gap),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: GColors.ink, width: GSpacing.border),
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 44,
-                child: Text(numero.toString().padLeft(2, '0'),
-                    style: GText.bigNumber),
-              ),
-              const SizedBox(width: GSpacing.blockV),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(review.title, style: GText.rowTitle),
-                    const SizedBox(height: GSpacing.gapSm),
-                    GMono.muted(meta.toString()),
-                    if (!suelto) ...[
-                      const SizedBox(height: GSpacing.barTop),
-                      GMeter(total: review.total, done: review.resolved),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: GSpacing.blockV),
-              GStamp(
-                suelto
-                    ? '.md'
-                    : review.isComplete
-                        ? 'Listo'
-                        : 'En curso',
-                filled: !suelto && review.isComplete,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Lista vacía: «Página en blanco».
-class _Vacia extends StatelessWidget {
-  final VoidCallback onImport;
-  const _Vacia({required this.onImport});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const _Hero(numero: 0, subtitulo: 'Aún no hay revisiones',
-            titulo: 'Página en ', tituloEm: 'blanco'),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: GSpacing.page),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Importa el JSON de una revisión, o un capítulo en .md, '
-                  'para empezar a trabajar.',
-                  style: GText.prose,
-                ),
-                const SizedBox(height: GSpacing.page),
-                GButton(
-                  label: 'Importar revisión',
-                  icon: Icons.add,
-                  fill: GFill.ink,
-                  onPressed: onImport,
-                ),
-              ],
-            ),
-          ),
-        ),
-        SafeArea(
+    return GPantallaLista<ReviewSummary>(
+      future: _future,
+      onRefresh: _refresh,
+      hero: (items) => _hero(items.length),
+      fila: (r, i) => _fila(r, i + 1),
+      vacia: GListaVacia(
+        hero: _hero(0, titulo: 'Página en ', tituloEm: 'blanco'),
+        texto: 'Importa el JSON de una revisión, o un capítulo en .md, '
+            'para empezar a trabajar.',
+        boton: 'Importar revisión',
+        onBoton: _openImport,
+        pie: SafeArea(
           top: false,
           child: Container(
             width: double.infinity,
@@ -361,36 +166,33 @@ class _Vacia extends StatelessWidget {
             child: const GMono.muted('Formato · la-jaula-rota-review-v4'),
           ),
         ),
-      ],
+      ),
+      fabLabel: 'Importar',
+      fabIcon: Icons.add,
+      onFab: _openImport,
     );
   }
-}
 
-class _Error extends StatelessWidget {
-  final Object error;
-  final Future<void> Function() onRetry;
+  Widget _fila(ReviewSummary r, int numero) {
+    final suelto = r.isDocument;
+    final meta = StringBuffer(suelto
+        ? 'Capítulo suelto'
+        : '${r.total} ${r.total == 1 ? 'sugerencia' : 'sugerencias'}');
+    if (r.manual > 0) meta.write(' · ${r.manual} a mano');
 
-  const _Error({required this.error, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(GSpacing.page),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const GMono.red('✕ No se pudo cargar'),
-          const SizedBox(height: GSpacing.gapSm),
-          Text('$error', style: GText.reason),
-          const SizedBox(height: GSpacing.page),
-          GButton(
-            label: 'Reintentar',
-            fill: GFill.ink,
-            onPressed: () => onRetry(),
-          ),
-        ],
+    return GFila(
+      id: r.id,
+      numero: numero,
+      titulo: r.title,
+      meta: meta.toString(),
+      debajo: suelto ? null : GMeter(total: r.total, done: r.resolved),
+      derecha: GStamp(
+        r.isComplete ? 'Listo' : (suelto ? '.md' : 'En curso'),
+        filled: r.isComplete,
       ),
+      onTap: () => _openReview(r.id),
+      onLongPress: () => _opciones(r),
+      onBorrar: () => _delete(r),
     );
   }
 }

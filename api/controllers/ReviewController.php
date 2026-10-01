@@ -17,6 +17,9 @@ class ReviewController {
             case 'POST':
                 $this->import($pdo, $userId);
                 break;
+            case 'PUT':
+                $this->update($pdo, $id, $userId);
+                break;
             case 'DELETE':
                 $this->delete($pdo, $id, $userId);
                 break;
@@ -33,23 +36,32 @@ class ReviewController {
         return (bool)$stmt->fetch();
     }
 
-    /** Lista para la pantalla inicial: metadatos + progreso de cada revisión de un libro. */
-    private function getList(PDO $pdo, int $userId): void {
-        $libroId = $_GET['libro_id'] ?? null;
-        if (!$libroId || !ctype_digit((string)$libroId)) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Falta libro_id']);
-            return;
-        }
-        if (!$this->libroDelUsuario($pdo, (string)$libroId, $userId)) {
-            http_response_code(404);
-            echo json_encode(['error' => 'Libro no encontrado']);
-            return;
-        }
+    /**
+     * Capítulo del usuario (con su libro_id), o null si no existe o no es
+     * suyo. Lo usan también CapituloController y las revisiones.
+     */
+    public static function capituloDelUsuario(PDO $pdo, string $capituloId, int $userId): ?array {
+        $stmt = $pdo->prepare(
+            'SELECT c.* FROM capitulos c
+               JOIN libros b ON b.id = c.libro_id
+              WHERE c.id = :id AND b.user_id = :user_id'
+        );
+        $stmt->execute(['id' => $capituloId, 'user_id' => $userId]);
+        return $stmt->fetch() ?: null;
+    }
 
+    /**
+     * Revisiones con su progreso, filtradas por `libro_id` o `capitulo_id`
+     * (el llamador ya ha comprobado que es del usuario). Único sitio donde se
+     * decide si una revisión está lista: con sugerencias, todas resueltas;
+     * sin ellas (capítulo suelto), marcada como finalizada a mano.
+     */
+    public static function listarConProgreso(PDO $pdo, string $campo, int $valor): array {
+        $columna = $campo === 'capitulo_id' ? 'r.capitulo_id' : 'r.libro_id';
         $stmt = $pdo->prepare(
             "SELECT
-                r.id, r.libro_id, r.format, r.title, r.source, r.created_at, r.updated_at,
+                r.id, r.libro_id, r.capitulo_id, r.finalizada, r.format, r.title, r.source,
+                r.created_at, r.updated_at,
                 (SELECT COUNT(*) FROM sugerencias s WHERE s.revision_id = r.id) AS total,
                 (SELECT COUNT(*) FROM respuestas a
                    WHERE a.revision_id = r.id
@@ -58,17 +70,50 @@ class ReviewController {
                 ) AS resolved,
                 (SELECT COUNT(*) FROM ediciones_manuales e WHERE e.revision_id = r.id) AS manual
              FROM revisiones r
-             WHERE r.libro_id = :libro_id
+             WHERE {$columna} = :valor
              ORDER BY r.updated_at DESC"
         );
-        $stmt->execute(['libro_id' => $libroId]);
+        $stmt->execute(['valor' => $valor]);
         $rows = $stmt->fetchAll();
         foreach ($rows as &$row) {
-            $row['total']    = (int)$row['total'];
-            $row['resolved'] = (int)$row['resolved'];
-            $row['manual']   = (int)$row['manual'];
+            $row['capitulo_id'] = $row['capitulo_id'] === null ? null : (int)$row['capitulo_id'];
+            $row['total']       = (int)$row['total'];
+            $row['resolved']    = (int)$row['resolved'];
+            $row['manual']      = (int)$row['manual'];
+            $row['finalizada']  = (bool)$row['finalizada'];
+            $row['lista']       = $row['total'] > 0
+                ? $row['resolved'] >= $row['total']
+                : $row['finalizada'];
         }
-        echo json_encode($rows);
+        return $rows;
+    }
+
+    /** Lista de revisiones de un capítulo (`?capitulo_id=`) o de un libro entero (`?libro_id=`). */
+    private function getList(PDO $pdo, int $userId): void {
+        $capituloId = $_GET['capitulo_id'] ?? null;
+        if ($capituloId !== null) {
+            if (!ctype_digit((string)$capituloId)
+                || !self::capituloDelUsuario($pdo, (string)$capituloId, $userId)) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Capítulo no encontrado']);
+                return;
+            }
+            echo json_encode(self::listarConProgreso($pdo, 'capitulo_id', (int)$capituloId));
+            return;
+        }
+
+        $libroId = $_GET['libro_id'] ?? null;
+        if (!$libroId || !ctype_digit((string)$libroId)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Falta libro_id o capitulo_id']);
+            return;
+        }
+        if (!$this->libroDelUsuario($pdo, (string)$libroId, $userId)) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Libro no encontrado']);
+            return;
+        }
+        echo json_encode(self::listarConProgreso($pdo, 'libro_id', (int)$libroId));
     }
 
     /** Revisión completa: metadatos + capítulo + sugerencias ordenadas. */
@@ -85,6 +130,8 @@ class ReviewController {
             echo json_encode(['error' => 'Revisión no encontrada']);
             return;
         }
+        $review['capitulo_id'] = $review['capitulo_id'] === null ? null : (int)$review['capitulo_id'];
+        $review['finalizada'] = (bool)$review['finalizada'];
 
         $stmt = $pdo->prepare(
             'SELECT * FROM sugerencias WHERE revision_id = :id ORDER BY orden ASC'
@@ -101,21 +148,36 @@ class ReviewController {
      * Importa una revisión. El cuerpo puede ser:
      *   - un objeto de revisión (chapter + suggestions), o
      *   - un estado 'la-jaula-rota-state-v2' (review + answers + manualEdits).
+     * Va a `capitulo_id`; sin él (clientes anteriores a los capítulos) basta
+     * `libro_id` y se le crea un capítulo propio con su título.
      * Si el id ya existe se responde 409 (bórrala antes de reimportar).
      */
     private function import(PDO $pdo, int $userId): void {
         $body = json_body();
 
+        $capituloId = $body['capitulo_id'] ?? null;
         $libroId = $body['libro_id'] ?? null;
-        if (!$libroId || !ctype_digit((string)$libroId)) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Falta libro_id']);
-            return;
-        }
-        if (!$this->libroDelUsuario($pdo, (string)$libroId, $userId)) {
-            http_response_code(404);
-            echo json_encode(['error' => 'Libro no encontrado']);
-            return;
+        if ($capituloId !== null) {
+            $capitulo = ctype_digit((string)$capituloId)
+                ? self::capituloDelUsuario($pdo, (string)$capituloId, $userId)
+                : null;
+            if (!$capitulo) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Capítulo no encontrado']);
+                return;
+            }
+            $libroId = $capitulo['libro_id'];
+        } else {
+            if (!$libroId || !ctype_digit((string)$libroId)) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Falta capitulo_id o libro_id']);
+                return;
+            }
+            if (!$this->libroDelUsuario($pdo, (string)$libroId, $userId)) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Libro no encontrado']);
+                return;
+            }
         }
 
         $isState = ($body['format'] ?? null) === 'la-jaula-rota-state-v2'
@@ -152,12 +214,18 @@ class ReviewController {
 
         $pdo->beginTransaction();
         try {
+            if ($capituloId === null) {
+                $capituloId = CapituloController::crear(
+                    $pdo, (int)$libroId, (string)($review['title'] ?? 'Capítulo'), null
+                );
+            }
             $pdo->prepare(
-                'INSERT INTO revisiones (id, libro_id, format, title, source, chapter)
-                 VALUES (:id, :libro_id, :format, :title, :source, :chapter)'
+                'INSERT INTO revisiones (id, libro_id, capitulo_id, format, title, source, chapter)
+                 VALUES (:id, :libro_id, :capitulo_id, :format, :title, :source, :chapter)'
             )->execute([
                 'id'      => $id,
                 'libro_id' => $libroId,
+                'capitulo_id' => $capituloId,
                 'format'  => $review['format'] ?? 'la-jaula-rota-review-v4',
                 'title'   => $review['title'] ?? 'Capítulo',
                 'source'  => $review['source'] ?? null,
@@ -218,6 +286,53 @@ class ReviewController {
                 'value'        => (string)($e['value'] ?? ''),
             ]);
         }
+    }
+
+    /**
+     * `PUT /revisiones/{id}` con `capitulo_id` (moverla a otro capítulo del
+     * mismo libro) y/o `finalizada` (marcar o reabrir un capítulo suelto).
+     */
+    private function update(PDO $pdo, ?string $id, int $userId): void {
+        $stmt = $pdo->prepare(
+            'SELECT r.id, r.libro_id FROM revisiones r
+               JOIN libros b ON b.id = r.libro_id
+              WHERE r.id = :id AND b.user_id = :user_id'
+        );
+        $stmt->execute(['id' => (string)$id, 'user_id' => $userId]);
+        $revision = $stmt->fetch();
+        if (!$revision) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Revisión no encontrada']);
+            return;
+        }
+
+        $body = json_body();
+        $cambios = [];
+        $params = ['id' => $revision['id']];
+        if (array_key_exists('capitulo_id', $body)) {
+            $capitulo = ctype_digit((string)$body['capitulo_id'])
+                ? self::capituloDelUsuario($pdo, (string)$body['capitulo_id'], $userId)
+                : null;
+            if (!$capitulo || (int)$capitulo['libro_id'] !== (int)$revision['libro_id']) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Capítulo no encontrado en este libro']);
+                return;
+            }
+            $cambios[] = 'capitulo_id = :capitulo_id';
+            $params['capitulo_id'] = (int)$capitulo['id'];
+        }
+        if (array_key_exists('finalizada', $body)) {
+            $cambios[] = 'finalizada = :finalizada';
+            $params['finalizada'] = $body['finalizada'] ? 1 : 0;
+        }
+        if (!$cambios) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Nada que cambiar: capitulo_id o finalizada']);
+            return;
+        }
+        $pdo->prepare('UPDATE revisiones SET ' . implode(', ', $cambios) . ' WHERE id = :id')
+            ->execute($params);
+        echo json_encode(['ok' => true]);
     }
 
     private function delete(PDO $pdo, ?string $id, int $userId): void {

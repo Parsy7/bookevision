@@ -70,6 +70,19 @@ class ReviewSession extends ChangeNotifier {
   bool get canSave =>
       _saveStatus == SaveStatus.pending || _saveStatus == SaveStatus.error;
 
+  /// Capítulo suelto (sin sugerencias): se puede marcar como terminado a
+  /// mano, ya que no hay sugerencias cuya resolución lo diga por él.
+  bool get esSuelto => _review != null && suggestions.isEmpty;
+  bool get finalizada => _review?.finalizada ?? false;
+
+  Future<void> setFinalizada(bool finalizada) async {
+    final r = _review;
+    if (r == null) return;
+    await _api.setFinalizada(r.id, finalizada);
+    _review = r.copyWith(finalizada: finalizada);
+    notifyListeners();
+  }
+
   Answer answerAt(int orden) => _answers[orden];
   Suggestion suggestionAt(int orden) => _review!.suggestions[orden];
 

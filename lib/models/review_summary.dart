@@ -3,6 +3,7 @@
 class ReviewSummary {
   final String id;
   final int? libroId;
+  final int? capituloId;
   final String format;
   final String title;
   final String? source;
@@ -11,9 +12,13 @@ class ReviewSummary {
   final int resolved; // resueltas (aceptada/original/personalizada no vacía)
   final int manual; // bloques editados a mano
 
+  /// Solo cuenta en un capítulo suelto: marcado a mano como terminado.
+  final bool finalizada;
+
   const ReviewSummary({
     required this.id,
     this.libroId,
+    this.capituloId,
     required this.format,
     required this.title,
     this.source,
@@ -21,10 +26,13 @@ class ReviewSummary {
     required this.total,
     required this.resolved,
     required this.manual,
+    this.finalizada = false,
   });
 
   int get pending => total - resolved;
-  bool get isComplete => total > 0 && resolved >= total;
+  /// Misma regla que `ReviewController::listarConProgreso` en el servidor:
+  /// con sugerencias, todas resueltas; sin ellas, finalizada a mano.
+  bool get isComplete => isDocument ? finalizada : resolved >= total;
 
   /// Capítulo cargado suelto (un `.md`): sin sugerencias que resolver, solo
   /// texto para leer y editar a mano.
@@ -33,6 +41,7 @@ class ReviewSummary {
   factory ReviewSummary.fromJson(Map<String, dynamic> j) => ReviewSummary(
         id: j['id'] as String,
         libroId: (j['libro_id'] as num?)?.toInt(),
+        capituloId: (j['capitulo_id'] as num?)?.toInt(),
         format: (j['format'] as String?) ?? 'la-jaula-rota-review-v4',
         title: (j['title'] as String?) ?? 'Capítulo',
         source: j['source'] as String?,
@@ -40,5 +49,6 @@ class ReviewSummary {
         total: (j['total'] as num?)?.toInt() ?? 0,
         resolved: (j['resolved'] as num?)?.toInt() ?? 0,
         manual: (j['manual'] as num?)?.toInt() ?? 0,
+        finalizada: j['finalizada'] == true || j['finalizada'] == 1,
       );
 }

@@ -7,8 +7,12 @@ import 'package:provider/provider.dart';
 
 import 'package:bookevision/config/app_config.dart';
 import 'package:bookevision/models/answer.dart';
+import 'package:bookevision/models/capitulo.dart';
+import 'package:bookevision/models/libro.dart';
+import 'package:bookevision/models/review_summary.dart';
 import 'package:bookevision/models/review.dart';
 import 'package:bookevision/galerada/screens/g_confirm_screen.dart';
+import 'package:bookevision/galerada/screens/g_libro_screen.dart';
 import 'package:bookevision/galerada/screens/g_original_screen.dart';
 import 'package:bookevision/galerada/screens/g_preview_screen.dart';
 import 'package:bookevision/galerada/screens/g_review_list_screen.dart';
@@ -48,6 +52,19 @@ Review _documentoLargo() => const Review(
           'sitio de sobra donde recorrer sin salirse de la línea visible.',
       suggestions: [],
     );
+
+const _libro = Libro(id: 1, title: 'Mi libro de prueba', capitulos: 3);
+const _capitulo = Capitulo(id: 2, libroId: 1, numero: 14, titulo: 'XIV Primero la promesa');
+const _portadaCapitulo = GReviewListScreen(libro: _libro, capitulo: _capitulo);
+
+/// Dos capítulos sueltos: uno ya marcado como finalizado y otro no.
+class _ApiDosSueltos extends ApiFalsa {
+  @override
+  Future<List<ReviewSummary>> getRevisiones({String? libroId, int? capituloId}) async => const [
+        ReviewSummary(id: 'a', format: 'f', title: 'Final', total: 0, resolved: 0, manual: 0, finalizada: true),
+        ReviewSummary(id: 'b', format: 'f', title: 'Borrador', total: 0, resolved: 0, manual: 0),
+      ];
+}
 
 Widget _app(Widget home, ApiService api) => Provider<ApiService>.value(
       value: api,
@@ -99,11 +116,11 @@ void main() {
 
   group('portada', () {
     testWidgets('hero, medidor y sellos', (tester) async {
-      await tester.pumpWidget(_app(
-          const GReviewListScreen(libroId: 1, libroTitle: 'Mi libro de prueba'),
-          ApiFalsaConVarias()));
+      await tester.pumpWidget(_app(_portadaCapitulo, ApiFalsaConVarias()));
       await _asentar(tester);
 
+      expect(find.text('XIV Primero la promesa'), findsOneWidget,
+          reason: 'el hero es el título del capítulo');
       expect(find.textContaining('LA JAULA'), findsNothing,
           reason: 'el hero va en Instrument Serif, no en mayúsculas mono');
       expect(find.text('BOOKEVISION'), findsOneWidget,
@@ -114,14 +131,54 @@ void main() {
     });
 
     testWidgets('lista vacía: página en blanco', (tester) async {
-      await tester.pumpWidget(_app(
-          const GReviewListScreen(libroId: 1, libroTitle: 'Mi libro de prueba'),
-          ApiFalsaVacia()));
+      await tester.pumpWidget(_app(_portadaCapitulo, ApiFalsaVacia()));
       await _asentar(tester);
 
       expect(find.textContaining('Página en '), findsOneWidget);
       expect(find.text('Importar revisión'), findsOneWidget);
       expect(find.text('FORMATO · LA-JAULA-ROTA-REVIEW-V4'), findsOneWidget);
+    });
+
+    testWidgets('un capítulo suelto finalizado lleva el sello LISTO relleno',
+        (tester) async {
+      await tester.pumpWidget(_app(_portadaCapitulo, _ApiDosSueltos()));
+      await _asentar(tester);
+
+      final sellos = tester.widgetList<GStamp>(find.byType(GStamp)).toList();
+      expect(sellos.map((s) => (s.label, s.filled)), [('Listo', true), ('.md', false)]);
+    });
+
+    testWidgets('mantener pulsada una revisión permite moverla a otro capítulo',
+        (tester) async {
+      final api = ApiFalsaConVarias();
+      await tester.pumpWidget(_app(_portadaCapitulo, api));
+      await _asentar(tester);
+
+      await tester.longPress(find.text('Capítulo 1'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Mover a otro capítulo'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('14 · XIV Primero la promesa'), findsNothing,
+          reason: 'el capítulo en el que ya está no se ofrece');
+      await tester.tap(find.text('15 · XV El regreso'));
+      await tester.pumpAndSettle();
+
+      expect(api.movidas, {'c1': 3});
+    });
+
+    testWidgets('la portada del libro lista sus capítulos con número y sello',
+        (tester) async {
+      await tester.pumpWidget(_app(const GLibroScreen(libro: _libro), ApiFalsaConVarias()));
+      await _asentar(tester);
+
+      expect(find.text('Mi libro de prueba'), findsOneWidget);
+      expect(find.text('3 capítulos'), findsOneWidget);
+      expect(find.text('13'), findsOneWidget);
+      expect(find.text('XIV Primero la promesa'), findsOneWidget);
+      final sellos = tester.widgetList<GStamp>(find.byType(GStamp)).toList();
+      expect(sellos.map((s) => (s.label, s.filled)),
+          [('Listo', true), ('En curso', false), ('Vacío', false)]);
     });
   });
 
@@ -356,6 +413,47 @@ void main() {
       expect(borde.left.width, 3);
 
       await tester.pump(const Duration(seconds: 2));
+    });
+  });
+
+  group('finalizar', () {
+    // La burbuja de la IA no para de animarse: sin pumpAndSettle, y un
+    // frame más para que el menú dé por terminada su animación de entrada.
+    Future<void> abrirMenu(WidgetTester tester) async {
+      await tester.tap(find.byIcon(Icons.more_horiz));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+    }
+
+    testWidgets('un capítulo suelto se marca como finalizado y se reabre desde ⋯',
+        (tester) async {
+      final api = ApiFalsa(_documento());
+      await tester.pumpWidget(_app(const GReviewerScreen(reviewId: 'doc'), api));
+      await _asentar(tester);
+
+      await abrirMenu(tester);
+      await tester.tap(find.text('Marcar como finalizado'));
+      await tester.pump(const Duration(seconds: 1)); // la burbuja IA no para de animarse: sin pumpAndSettle
+      expect(api.finalizadas, {'doc': true});
+
+      await abrirMenu(tester);
+      expect(find.text('Marcar como finalizado'), findsNothing);
+      await tester.tap(find.text('Reabrir capítulo'));
+      await tester.pump(const Duration(seconds: 1)); // la burbuja IA no para de animarse: sin pumpAndSettle
+      expect(api.finalizadas, {'doc': false});
+
+      await tester.pump(const Duration(seconds: 2));
+    });
+
+    testWidgets('con sugerencias no hay opción de finalizar: ya lo dicen ellas',
+        (tester) async {
+      await tester.pumpWidget(_app(const GReviewerScreen(reviewId: 'x'), ApiFalsa()));
+      await _asentar(tester);
+
+      await abrirMenu(tester);
+      expect(find.text('Marcar como finalizado'), findsNothing);
+      expect(find.text('Reabrir capítulo'), findsNothing);
     });
   });
 
