@@ -51,11 +51,14 @@ foreach ($files as $file) {
         $pdo->exec($sql);
         $pdo->prepare('INSERT INTO _migrations (name) VALUES (:name)')
             ->execute(['name' => $name]);
-        $pdo->commit();
+        // Un CREATE/ALTER confirma la transacción por su cuenta (MariaDB no
+        // tiene DDL transaccional); en PHP 8, commit()/rollBack() sin
+        // transacción abierta lanzan excepción, así que solo si sigue abierta.
+        if ($pdo->inTransaction()) $pdo->commit();
         echo "Aplicada: $name\n";
         $done++;
     } catch (Throwable $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) $pdo->rollBack();
         echo "ERROR en $name: " . $e->getMessage() . "\n";
         exit;
     }
