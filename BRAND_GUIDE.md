@@ -234,7 +234,7 @@ dice **cuál buscar**.
 | Respuesta de la IA en Markdown | `GAiMarkdown` | `g_ai_markdown.dart` |
 
 **Hojas desde abajo:** `GMenu.hoja` — fondo `sheet`, borde superior de tinta, velo `scrim`, sin
-radio.
+radio. Como mucho el 70% del alto de pantalla, y la lista hace scroll si no cabe.
 
 ---
 

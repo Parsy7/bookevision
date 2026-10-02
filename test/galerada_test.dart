@@ -66,6 +66,15 @@ class _ApiDosSueltos extends ApiFalsa {
       ];
 }
 
+/// Un libro con muchos capítulos, más de los que caben en la hoja de mover.
+class _ApiMuchosCapitulos extends ApiFalsaConVarias {
+  @override
+  Future<List<Capitulo>> getCapitulos(int libroId) async => [
+        for (var i = 1; i <= 30; i++)
+          Capitulo(id: 100 + i, libroId: 1, numero: i, titulo: 'Capítulo número $i'),
+      ];
+}
+
 Widget _app(Widget home, ApiService api) => Provider<ApiService>.value(
       value: api,
       child: MaterialApp(theme: buildGaleradaTheme(), home: home),
@@ -165,6 +174,27 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(api.movidas, {'c1': 3});
+    });
+
+    testWidgets('la hoja de mover hace scroll cuando hay muchos capítulos',
+        (tester) async {
+      final api = _ApiMuchosCapitulos();
+      await tester.pumpWidget(_app(_portadaCapitulo, api));
+      await _asentar(tester);
+
+      await tester.longPress(find.text('Capítulo 1'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Mover a otro capítulo'));
+      await tester.pumpAndSettle();
+
+      final ultimo = find.text('30 · Capítulo número 30');
+      await tester.scrollUntilVisible(ultimo, 200,
+          scrollable: find.descendant(
+              of: find.byType(BottomSheet), matching: find.byType(Scrollable)));
+      await tester.tap(ultimo);
+      await tester.pumpAndSettle();
+
+      expect(api.movidas, {'c1': 130});
     });
 
     testWidgets('la portada del libro lista sus capítulos con número y sello',

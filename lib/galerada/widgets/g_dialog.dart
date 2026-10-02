@@ -106,6 +106,10 @@ class GMenu extends StatelessWidget {
 
   const GMenu({super.key, required this.items, required this.onSelected});
 
+  /// Fracción del alto de pantalla que puede ocupar [hoja] (como en Anotto
+  /// para las hojas de selección).
+  static const _altoMaxHoja = 0.7;
+
   /// Las mismas filas, en una hoja desde abajo (las opciones de una fila al
   /// mantenerla pulsada). Devuelve el `value` elegido, o `null` si se cierra.
   static Future<String?> hoja(
@@ -115,6 +119,10 @@ class GMenu extends StatelessWidget {
   }) {
     return showModalBottomSheet<String>(
       context: context,
+      isScrollControlled: true,
+      // Como mucho el 70% del alto, y con scroll: la lista (p. ej. todos los
+      // capítulos de un libro) puede ser mucho más larga que la pantalla.
+      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * _altoMaxHoja),
       backgroundColor: GColors.sheet,
       barrierColor: GColors.scrim,
       elevation: 0,
@@ -131,11 +139,16 @@ class GMenu extends StatelessWidget {
               ),
               child: GMono.muted(titulo),
             ),
-            for (var i = 0; i < items.length; i++)
-              InkWell(
-                onTap: () => Navigator.of(ctx).pop(items[i].value),
-                child: _GMenuFila(item: items[i], ultima: i == items.length - 1),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: items.length,
+                itemBuilder: (_, i) => InkWell(
+                  onTap: () => Navigator.of(ctx).pop(items[i].value),
+                  child: _GMenuFila(item: items[i], ultima: i == items.length - 1),
+                ),
               ),
+            ),
           ],
         ),
       ),
