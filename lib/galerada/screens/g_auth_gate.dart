@@ -24,7 +24,11 @@ class _GAuthGateState extends State<GAuthGate> {
   }
 
   void _onAuthenticated() {
-    setState(() => _tokenFuture = _auth.readToken());
+    // Con llaves: con flecha, la asignación devolvería el Future y setState
+    // lo rechaza (en debug salta un error; en release pasa sin avisar).
+    setState(() {
+      _tokenFuture = _auth.readToken();
+    });
   }
 
   @override
