@@ -64,6 +64,10 @@ class GSpacing {
   /// Columna del número grande en las filas de una portada (01, 02…).
   static const double rowNumber = 44;
 
+  /// Logo junto a «bookevision» en el hero, y la B de la pantalla de carga.
+  static const double logoMarca = 20;
+  static const double logoArranque = 140;
+
   /// Padding de los chips en mono (Ver original, Reintentar…).
   static const double chipH = 7;
   static const double chipV = 5;

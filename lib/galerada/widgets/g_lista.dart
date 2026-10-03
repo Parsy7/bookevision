@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/g_colors.dart';
+import '../theme/g_marca.dart';
 import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
 import 'g_bits.dart';
@@ -63,6 +64,13 @@ class GHero extends StatelessWidget {
                     GestureDetector(onTap: onVolver, child: const GMono.muted('← Volver')),
                     const SizedBox(width: GSpacing.gap),
                   ],
+                  Image.asset(
+                    GMarca.logo,
+                    width: GSpacing.logoMarca,
+                    height: GSpacing.logoMarca,
+                    excludeFromSemantics: true,
+                  ),
+                  const SizedBox(width: GSpacing.gapSm),
                   const GMono('bookevision'),
                 ],
               ),

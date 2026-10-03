@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import 'screens/g_auth_gate.dart';
+import 'screens/g_splash.dart';
 import 'theme/g_theme.dart';
 
 /// Raíz de la piel «Galerada». Comparte `models/`, `services/` y `utils/` con
@@ -17,7 +18,7 @@ class GaleradaApp extends StatelessWidget {
         Provider<ApiService>(create: (_) => ApiService()),
       ],
       child: MaterialApp(
-        title: 'BookeVision',
+        title: 'bookevision',
         debugShowCheckedModeBanner: false,
         theme: buildGaleradaTheme(),
         localizationsDelegates: const [
@@ -26,7 +27,7 @@ class GaleradaApp extends StatelessWidget {
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: const [Locale('es'), Locale('en')],
-        home: const GAuthGate(),
+        home: const GSplash(child: GAuthGate()),
       ),
     );
   }

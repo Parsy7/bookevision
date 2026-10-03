@@ -91,6 +91,29 @@ del tema «Clásico», el de por defecto.
 
 ---
 
+## Marca
+
+El logo es una B blanca con las hojas de un libro en dorado, sobre azul. Código:
+`lib/galerada/theme/g_marca.dart`; archivos en `assets/logo/`.
+
+| Token | Valor | Uso |
+|---|---|---|
+| `GMarca.fondo` | `#232A42` | Fondo del logo, del icono y del arranque |
+| `GMarca.dorado` | `#C9A06A` | Las hojas del libro dentro de la B |
+| `GMarca.logo` | `assets/logo/logo.png` | Logo cuadrado con su fondo (junto a «bookevision» en el hero) |
+| `GMarca.marca` | `assets/logo/marca.png` | Solo la B, sobre transparente (pantalla de carga) |
+
+> Los colores de la marca **no cambian con el tema** elegido en «Mi perfil»: son los del logo. Se
+> usan solo para el logo, el icono y la pantalla de carga; el resto de la app usa `GColors`.
+
+- **Icono de la app:** adaptativo, fondo `#232A42` y la B delante
+  (`assets/logo/icono_primer_plano.png`, a la misma proporción que en el logo). Lo genera el CI con
+  `flutter_launcher_icons` (configurado en `pubspec.yaml`).
+- **Arranque:** el nativo es solo el azul (en Android 12+ con un icono transparente), y luego la
+  pantalla de carga de Flutter (`GSplash`) hace aparecer la B de menos a más y se funde con la app.
+
+---
+
 ## Tipografía
 
 ### Fuentes
@@ -229,6 +252,7 @@ dice **cuál buscar**.
 | Menú ⋯ / hoja de opciones al mantener pulsado | `GMenu` / `GMenu.hoja` | `g_dialog.dart` |
 | Portada con lista (hero, filas, vacía, error, FAB) | `GPantallaLista`, `GHero`, `GFila`, `GListaVacia` | `g_lista.dart` |
 | Prosa de lectura / editable | `GProseFlow` / `GProseBlock` | `g_prose.dart` |
+| Pantalla de carga al abrir la app | `GSplash` | `screens/g_splash.dart` |
 | Tarjeta de sugerencia | `GSuggestionCard` | `g_suggestion_card.dart` |
 | Asistente de IA en una pantalla | `GAiConAsistente` (mixin) | `g_ai_assistant_overlay.dart` |
 | Respuesta de la IA en Markdown | `GAiMarkdown` | `g_ai_markdown.dart` |
@@ -258,3 +282,4 @@ cambiar de tema.
       `GMenu` (230), `insetPadding` de `GDialog` (28).
 - [x] Paleta en base de datos con temas elegibles
 - [x] Excepción de la IA documentada
+- [x] Logo, icono de la app y pantalla de carga

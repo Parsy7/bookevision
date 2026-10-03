@@ -25,6 +25,34 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.7
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/logo/
+
+# Icono de la app. El repo no lleva android/ (lo genera el CI con
+# `flutter create`), así que el CI corre `dart run flutter_launcher_icons`
+# después de generarlo. Fondo y marca salen del logo (ver BRAND_GUIDE.md →
+# Marca).
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/logo/logo.png
+  adaptive_icon_background: "#232A42"
+  adaptive_icon_foreground: assets/logo/icono_primer_plano.png
+  min_sdk_android: 21
+
+# Pantalla de arranque nativa: solo el azul del logo, sin imagen, para que
+# no haya un destello blanco antes de la pantalla de carga de Flutter (que
+# es la que hace aparecer la B con el fundido). En Android 12+ el sistema
+# siempre pinta un icono: se le da uno transparente.
+flutter_native_splash:
+  color: "#232A42"
+  android_12:
+    color: "#232A42"
+    image: assets/logo/vacio.png
+  ios: false
+  web: false

@@ -21,6 +21,7 @@ import 'package:bookevision/galerada/theme/g_colors.dart';
 import 'package:bookevision/galerada/theme/g_theme.dart';
 import 'package:bookevision/galerada/widgets/g_bits.dart';
 import 'package:bookevision/galerada/widgets/g_foot.dart';
+import 'package:bookevision/galerada/widgets/g_lista.dart';
 import 'package:bookevision/galerada/widgets/g_paragraphs.dart';
 import 'package:bookevision/galerada/widgets/g_prose.dart';
 import 'package:bookevision/galerada/widgets/g_suggestion_card.dart';
@@ -134,6 +135,8 @@ void main() {
           reason: 'el hero va en Instrument Serif, no en mayúsculas mono');
       expect(find.text('BOOKEVISION'), findsOneWidget,
           reason: 'la marca sí es mono en mayúsculas');
+      expect(find.descendant(of: find.byType(GHero), matching: find.byType(Image)), findsOneWidget,
+          reason: 'el logo va junto a «bookevision»');
       expect(find.byType(GMeter), findsWidgets);
       expect(find.byType(GStamp), findsWidgets);
       expect(find.text('01'), findsOneWidget, reason: 'número de dos dígitos');
