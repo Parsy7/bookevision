@@ -37,10 +37,11 @@ class GDialog {
               padding: const EdgeInsets.all(GSpacing.card),
               decoration: BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: GColors.ink, width: GSpacing.border),
+                  bottom:
+                      BorderSide(color: GColors.ink, width: GSpacing.border),
                 ),
               ),
-              child: const GMono.red('Acción irreversible'),
+              child: const GMono('Acción irreversible', color: GColors.danger),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(
@@ -50,7 +51,10 @@ class GDialog {
                   style: GText.cardTitle,
                   children: [
                     TextSpan(text: '$title '),
-                    TextSpan(text: keyword, style: GText.cardTitleEm),
+                    TextSpan(
+                        text: keyword,
+                        style: GText.cardTitleEm
+                            .copyWith(color: GColors.danger)),
                   ],
                 ),
               ),
@@ -70,7 +74,7 @@ class GDialog {
               GAction(
                 keyLetter: '',
                 label: confirmLabel,
-                tone: GTone.red,
+                tone: GTone.danger,
                 active: true,
                 centered: true,
                 onTap: () => Navigator.of(ctx).pop(true),
@@ -122,11 +126,13 @@ class GMenu extends StatelessWidget {
       isScrollControlled: true,
       // Como mucho el 70% del alto, y con scroll: la lista (p. ej. todos los
       // capítulos de un libro) puede ser mucho más larga que la pantalla.
-      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * _altoMaxHoja),
+      constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * _altoMaxHoja),
       backgroundColor: GColors.sheet,
       barrierColor: GColors.scrim,
       elevation: 0,
-      shape: Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
+      shape:
+          Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -135,7 +141,9 @@ class GMenu extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(GSpacing.gap),
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
+                border: Border(
+                    bottom:
+                        BorderSide(color: GColors.ink, width: GSpacing.border)),
               ),
               child: GMono.muted(titulo),
             ),
@@ -145,7 +153,8 @@ class GMenu extends StatelessWidget {
                 itemCount: items.length,
                 itemBuilder: (_, i) => InkWell(
                   onTap: () => Navigator.of(ctx).pop(items[i].value),
-                  child: _GMenuFila(item: items[i], ultima: i == items.length - 1),
+                  child:
+                      _GMenuFila(item: items[i], ultima: i == items.length - 1),
                 ),
               ),
             ),
@@ -164,6 +173,7 @@ class GMenu extends StatelessWidget {
       color: GColors.sheet,
       elevation: 0,
       padding: EdgeInsets.zero,
+      menuPadding: EdgeInsets.zero,
       constraints: const BoxConstraints(minWidth: 230, maxWidth: 230),
       shape: RoundedRectangleBorder(
         side: BorderSide(color: GColors.ink, width: GSpacing.border),
@@ -199,19 +209,23 @@ class _GMenuFila extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = item.danger ? GColors.red : GColors.ink;
+    final color = item.danger ? GColors.danger : GColors.ink;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: GSpacing.gap, vertical: GSpacing.card),
+      padding: const EdgeInsets.symmetric(
+          horizontal: GSpacing.gap, vertical: GSpacing.card),
       decoration: BoxDecoration(
         border: ultima
             ? null
-            : Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
+            : Border(
+                bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
       ),
       child: Row(
         children: [
           Icon(item.icon, size: 20, color: color),
           const SizedBox(width: GSpacing.blockV),
-          Flexible(child: Text(item.label, style: GText.menu.copyWith(color: color))),
+          Flexible(
+              child:
+                  Text(item.label, style: GText.menu.copyWith(color: color))),
         ],
       ),
     );

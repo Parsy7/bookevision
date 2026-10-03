@@ -61,12 +61,19 @@ class GSpacing {
   /// Aire sobre la marca en la cabecera (hero) de las portadas.
   static const double heroTop = 22;
 
+  /// Alto reservado bajo el título de la barra superior para una segunda
+  /// línea (hueco incluido), p. ej. el estado del autoguardado.
+  static const double appBarSubtitulo = 18;
+
   /// Columna del número grande en las filas de una portada (01, 02…).
   static const double rowNumber = 44;
 
   /// Logo junto a «bookevision» en el hero, y la B de la pantalla de carga.
-  static const double logoMarca = 20;
+  static const double logoMarca = 40;
   static const double logoArranque = 140;
+
+  /// Logo centrado sobre «bookevision» en el login.
+  static const double logoLogin = 72;
 
   /// Padding de los chips en mono (Ver original, Reintentar…).
   static const double chipH = 7;
@@ -94,7 +101,7 @@ class GSpacing {
   /// Zona táctil del tirador que estira el panel, y la barrita visible.
   static const double aiHandle = 22;
   static const double aiHandleW = 36;
-  static const double aiHandleH = 4;
+  static const double aiHandleH = 2;
 
   /// Botoncito de copiar de cada respuesta, y el hueco que se le reserva al
   /// texto para no quedar debajo.

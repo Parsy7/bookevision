@@ -65,12 +65,12 @@ class GText {
 
   /// Hero de la lista: «La jaula rota» a 64px.
   static TextStyle get hero =>
-      _serif(size: 64, height: 0.9, letterSpacing: -0.64); // -.01em
+      _serif(size: 64, height: 1.05, letterSpacing: -0.64); // -.01em
 
   /// Hero de «Mis libros»: el mismo titular a 48 (mismo interlineado y
   /// espaciado que [hero], como siempre ha sido).
   static TextStyle get heroSm =>
-      _serif(size: 48, height: 0.9, letterSpacing: -0.64);
+      _serif(size: 48, height: 1.05, letterSpacing: -0.64);
 
   /// Título de la barra superior.
   static TextStyle get appBar => _serif(size: 26, height: 1);
@@ -79,8 +79,8 @@ class GText {
   static TextStyle get cardTitle => _serif(size: 28, height: 1.05);
 
   /// La palabra clave del título, en rojo y cursiva.
-  static TextStyle get cardTitleEm =>
-      _serif(size: 28, height: 1.05, color: GColors.red, style: FontStyle.italic);
+  static TextStyle get cardTitleEm => _serif(
+      size: 28, height: 1.05, color: GColors.red, style: FontStyle.italic);
 
   /// Título de una fila de la lista.
   static TextStyle get rowTitle => _serif(size: 22, height: 1.1);
@@ -153,13 +153,14 @@ class GText {
   // ---------- Etiquetas (JetBrains Mono, MAYÚSCULAS) ----------
 
   /// Etiquetas, metadatos, estados y sellos.
-  static TextStyle get mono => _mono(size: 10.5, height: 1.3);
+  static TextStyle get mono => _mono(size: 12, height: 1.3);
 
   /// Teclas de las acciones, números de párrafo y sellos de estado.
   static TextStyle get monoSm => _mono(size: 10, height: 1);
 
   /// Número de párrafo en el margen.
-  static TextStyle get paragraphNo => _mono(size: 10, height: 1, color: GColors.grey3);
+  static TextStyle get paragraphNo =>
+      _mono(size: 10, height: 1, color: GColors.grey3);
 
   /// Campo de pegado de JSON.
   static TextStyle get field => GoogleFonts.jetBrainsMono(

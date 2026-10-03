@@ -191,81 +191,84 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
         if (session.canSave) session.saveNow();
       },
       child: conAsistente(
-          Scaffold(
-        appBar: GAppBar(
-          title: session.review?.title ?? 'Revisión',
-          trailing: [
-            if (session.loadStatus == LoadStatus.ready) ...[
-              _EstadoGuardado(status: session.saveStatus),
-              GMenu(
-                items: [
-                  const GMenuItem(
-                      label: 'Vista previa',
-                      icon: Icons.visibility,
-                      value: 'preview'),
-                  const GMenuItem(
-                      label: 'Exportar avance (.md)',
-                      icon: Icons.ios_share,
-                      value: 'export'),
-                  const GMenuItem(
-                      label: 'Ver original',
-                      icon: Icons.menu_book,
-                      value: 'original'),
-                  const GMenuItem(
-                      label: 'Generar sugerencias con IA',
-                      icon: Icons.auto_awesome,
-                      value: 'sugerencias_ia'),
-                  if (session.esSuelto)
-                    session.finalizada
-                        ? const GMenuItem(
-                            label: 'Reabrir capítulo',
-                            icon: Icons.undo,
-                            value: 'finalizar')
-                        : const GMenuItem(
-                            label: 'Marcar como finalizado',
-                            icon: Icons.check,
-                            value: 'finalizar'),
-                  const GMenuItem(
-                      label: 'Borrar decisiones',
-                      icon: Icons.restart_alt,
-                      value: 'reset',
-                      danger: true),
-                ],
-                onSelected: (v) {
-                  switch (v) {
-                    case 'preview':
-                      _abrir(GPreviewScreen(
-                        title: session.review!.title,
-                        text: session.currentText(),
-                        revisionId: session.review!.id,
-                        counts: session.counts(),
-                      ));
-                    case 'sugerencias_ia':
-                      _generarSugerenciasIA(session);
-                    case 'export':
-                      ExportMd.share(session.review!.title, 'avance',
-                          session.currentText());
-                    case 'original':
-                      _abrir(GOriginalScreen(
-                        chapter: session.review!.chapter,
-                        revisionId: session.review!.id,
-                      ));
-                    case 'finalizar':
-                      _alternarFinalizada(session);
-                    case 'reset':
-                      _reset(session);
-                  }
-                },
-              ),
+        Scaffold(
+          appBar: GAppBar(
+            title: session.review?.title ?? 'Revisión',
+            subtitulo: session.loadStatus == LoadStatus.ready &&
+                    session.saveStatus != SaveStatus.idle
+                ? _EstadoGuardado(status: session.saveStatus)
+                : null,
+            trailing: [
+              if (session.loadStatus == LoadStatus.ready) ...[
+                GMenu(
+                  items: [
+                    const GMenuItem(
+                        label: 'Vista previa',
+                        icon: Icons.visibility,
+                        value: 'preview'),
+                    const GMenuItem(
+                        label: 'Exportar avance (.md)',
+                        icon: Icons.ios_share,
+                        value: 'export'),
+                    const GMenuItem(
+                        label: 'Ver original',
+                        icon: Icons.menu_book,
+                        value: 'original'),
+                    const GMenuItem(
+                        label: 'Generar sugerencias',
+                        icon: Icons.auto_awesome,
+                        value: 'sugerencias_ia'),
+                    if (session.esSuelto)
+                      session.finalizada
+                          ? const GMenuItem(
+                              label: 'Reabrir capítulo',
+                              icon: Icons.undo,
+                              value: 'finalizar')
+                          : const GMenuItem(
+                              label: 'Marcar como finalizado',
+                              icon: Icons.check,
+                              value: 'finalizar'),
+                    const GMenuItem(
+                        label: 'Borrar decisiones',
+                        icon: Icons.restart_alt,
+                        value: 'reset',
+                        danger: true),
+                  ],
+                  onSelected: (v) {
+                    switch (v) {
+                      case 'preview':
+                        _abrir(GPreviewScreen(
+                          title: session.review!.title,
+                          text: session.currentText(),
+                          revisionId: session.review!.id,
+                          counts: session.counts(),
+                        ));
+                      case 'sugerencias_ia':
+                        _generarSugerenciasIA(session);
+                      case 'export':
+                        ExportMd.share(session.review!.title, 'avance',
+                            session.currentText());
+                      case 'original':
+                        _abrir(GOriginalScreen(
+                          chapter: session.review!.chapter,
+                          revisionId: session.review!.id,
+                        ));
+                      case 'finalizar':
+                        _alternarFinalizada(session);
+                      case 'reset':
+                        _reset(session);
+                    }
+                  },
+                ),
+              ],
             ],
-          ],
-        ),
-        body: _cuerpo(session, ai),
-        bottomNavigationBar:
-            session.loadStatus == LoadStatus.ready ? _barra(session) : null,
           ),
-          ai,
-          extraBottomOffset: GSpacing.foot,
+          body: _cuerpo(session, ai),
+          bottomNavigationBar:
+              session.loadStatus == LoadStatus.ready ? _barra(session) : null,
+        ),
+        ai,
+        extraBottomOffset: GSpacing.foot,
       ),
     );
   }
@@ -274,8 +277,7 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
     switch (session.loadStatus) {
       case LoadStatus.idle:
       case LoadStatus.loading:
-        return Center(
-            child: CircularProgressIndicator(color: GColors.ink));
+        return Center(child: CircularProgressIndicator(color: GColors.ink));
       case LoadStatus.error:
         return Padding(
           padding: const EdgeInsets.all(GSpacing.page),
@@ -436,7 +438,8 @@ class _Progreso extends StatelessWidget {
       padding: const EdgeInsets.symmetric(
           horizontal: GSpacing.page, vertical: GSpacing.barTop),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
+        border: Border(
+            bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
       ),
       child: Row(
         children: [
@@ -445,7 +448,8 @@ class _Progreso extends StatelessWidget {
           Expanded(child: GTicks(total: total, done: done)),
           const SizedBox(width: GSpacing.blockV),
           if (pendientes > 0)
-            GMono.red('$pendientes ${pendientes == 1 ? 'pendiente' : 'pendientes'}')
+            GMono.red(
+                '$pendientes ${pendientes == 1 ? 'pendiente' : 'pendientes'}')
           else
             const GMono('Completado'),
         ],

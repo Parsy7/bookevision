@@ -69,7 +69,8 @@ class GProseFlow extends StatefulWidget {
   final void Function(String seleccion)? onSeleccionCambia;
   final VoidCallback? onSeleccionVacia;
 
-  const GProseFlow(this.text, {super.key, this.onSeleccionCambia, this.onSeleccionVacia});
+  const GProseFlow(this.text,
+      {super.key, this.onSeleccionCambia, this.onSeleccionVacia});
 
   @override
   State<GProseFlow> createState() => _GProseFlowState();
@@ -104,7 +105,8 @@ class _GProseFlowState extends State<GProseFlow> {
       },
       // Sin barra nativa: el propio botón flotante "Preguntar a la IA" es la
       // única affordance sobre la selección.
-      contextMenuBuilder: (context, selectableRegionState) => const SizedBox.shrink(),
+      contextMenuBuilder: (context, selectableRegionState) =>
+          const SizedBox.shrink(),
       child: columna,
     );
   }
@@ -203,8 +205,7 @@ class _GProseBlockState extends State<GProseBlock> {
   /// fácil de no ver).
   void _onSeleccionEnCampo() {
     if (!_editing) return;
-    final seleccion =
-        _controller.selection.textInside(_controller.text).trim();
+    final seleccion = _controller.selection.textInside(_controller.text).trim();
     if (seleccion.isEmpty) {
       widget.onSeleccionVacia?.call();
     } else {
@@ -264,10 +265,13 @@ class _GProseBlockState extends State<GProseBlock> {
     if (_seleccionando) {
       final ini = _inicioSeleccion, fin = _finSeleccion;
       _inicioPulsacion = null;
-      final desde = (ini != null && fin != null) ? (ini < fin ? ini : fin) : null;
-      final hasta = (ini != null && fin != null) ? (ini < fin ? fin : ini) : null;
-      final fragmento =
-          (desde != null && hasta != null) ? mostrado.substring(desde, hasta).trim() : '';
+      final desde =
+          (ini != null && fin != null) ? (ini < fin ? ini : fin) : null;
+      final hasta =
+          (ini != null && fin != null) ? (ini < fin ? fin : ini) : null;
+      final fragmento = (desde != null && hasta != null)
+          ? mostrado.substring(desde, hasta).trim()
+          : '';
       if (fragmento.isEmpty) {
         setState(() {
           _seleccionando = false;
@@ -303,8 +307,7 @@ class _GProseBlockState extends State<GProseBlock> {
       _editing = true;
       _showingOriginal = false;
     });
-    final acciones =
-        GProseEditActions(guardar: _save, cancelar: _cancel);
+    final acciones = GProseEditActions(guardar: _save, cancelar: _cancel);
     _acciones = acciones;
     widget.onEditing?.call(acciones, activa: true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -365,7 +368,8 @@ class _GProseBlockState extends State<GProseBlock> {
           decoration: editado
               ? BoxDecoration(
                   border: Border(
-                    left: BorderSide(color: GColors.red, width: GSpacing.stripe),
+                    left:
+                        BorderSide(color: GColors.red, width: GSpacing.stripe),
                   ),
                 )
               : null,
@@ -399,7 +403,8 @@ class _GProseBlockState extends State<GProseBlock> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onLongPressStart: (d) => _onLongPressStart(d.globalPosition),
-      onLongPressMoveUpdate: (d) => _onLongPressMoveUpdate(d.globalPosition, mostrado),
+      onLongPressMoveUpdate: (d) =>
+          _onLongPressMoveUpdate(d.globalPosition, mostrado),
       onLongPressEnd: (_) => _onLongPressEnd(edit, mostrado),
       child: Container(
         width: double.infinity,
@@ -428,7 +433,8 @@ class _GProseBlockState extends State<GProseBlock> {
           TextSpan(text: mostrado.substring(0, desde)),
           TextSpan(
             text: mostrado.substring(desde, hasta),
-            style: TextStyle(backgroundColor: GColors.blue.withValues(alpha: 0.22)),
+            style: TextStyle(
+                backgroundColor: GColors.blue.withValues(alpha: 0.22)),
           ),
           TextSpan(text: mostrado.substring(hasta)),
         ],

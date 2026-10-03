@@ -20,7 +20,7 @@ class GSplash extends StatefulWidget {
   State<GSplash> createState() => _GSplashState();
 }
 
-class _GSplashState extends State<GSplash> with SingleTickerProviderStateMixin {
+class _GSplashState extends State<GSplash> with TickerProviderStateMixin {
   late final AnimationController _c =
       AnimationController(vsync: this, duration: GSplash.duracion)..forward();
 
@@ -31,9 +31,18 @@ class _GSplashState extends State<GSplash> with SingleTickerProviderStateMixin {
   late final Animation<double> _salida = Tween<double>(begin: 1, end: 0).animate(
       CurvedAnimation(parent: _c, curve: const Interval(0.85, 1, curve: Curves.easeOut)));
 
+  // Mientras la B está en pantalla, late: va de opacidad 1 a 0.3 y vuelve,
+  // una y otra vez, para que el efecto se note de verdad.
+  late final AnimationController _latidoC =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
+        ..repeat(reverse: true);
+  late final Animation<double> _latido = Tween<double>(begin: 1, end: 0.3)
+      .animate(CurvedAnimation(parent: _latidoC, curve: Curves.easeInOut));
+
   @override
   void dispose() {
     _c.dispose();
+    _latidoC.dispose();
     super.dispose();
   }
 
@@ -59,12 +68,16 @@ class _GSplashState extends State<GSplash> with SingleTickerProviderStateMixin {
             child: ColoredBox(
               color: GMarca.fondo,
               child: Center(
-                child: FadeTransition(
-                  opacity: _logo,
+                child: AnimatedBuilder(
+                  animation: Listenable.merge([_logo, _latido]),
                   child: Image.asset(
                     GMarca.marca,
                     height: GSpacing.logoArranque,
                     semanticLabel: 'bookevision',
+                  ),
+                  builder: (context, imagen) => Opacity(
+                    opacity: _logo.value * _latido.value,
+                    child: imagen,
                   ),
                 ),
               ),

@@ -39,7 +39,9 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
   }
 
   void _reload() {
-    _future = context.read<ApiService>().getRevisiones(capituloId: widget.capitulo.id);
+    _future = context
+        .read<ApiService>()
+        .getRevisiones(capituloId: widget.capitulo.id);
   }
 
   Future<void> _refresh() async {
@@ -49,7 +51,8 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
 
   Future<void> _openImport() async {
     final id = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => GImportScreen(capituloId: widget.capitulo.id)),
+      MaterialPageRoute(
+          builder: (_) => GImportScreen(capituloId: widget.capitulo.id)),
     );
     if (!mounted) return;
     await _refresh();
@@ -67,8 +70,15 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
       context,
       titulo: r.title,
       items: const [
-        GMenuItem(label: 'Mover a otro capítulo', icon: Icons.drive_file_move_outline, value: 'mover'),
-        GMenuItem(label: 'Borrar revisión', icon: Icons.delete_outline, value: 'borrar', danger: true),
+        GMenuItem(
+            label: 'Mover a otro capítulo',
+            icon: Icons.drive_file_move_outline,
+            value: 'mover'),
+        GMenuItem(
+            label: 'Borrar revisión',
+            icon: Icons.delete_outline,
+            value: 'borrar',
+            danger: true),
       ],
     );
     if (!mounted) return;
@@ -96,7 +106,10 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
         titulo: 'Mover a…',
         items: [
           for (final c in otros)
-            GMenuItem(label: '${c.numero} · ${c.titulo}', icon: Icons.menu_book, value: '${c.id}'),
+            GMenuItem(
+                label: '${c.numero} · ${c.titulo}',
+                icon: Icons.menu_book,
+                value: '${c.id}'),
         ],
       );
       if (elegido == null || !mounted) return;
@@ -127,7 +140,8 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
   void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg.toUpperCase(), style: GText.mono.copyWith(color: GColors.onInk)),
+        content: Text(msg.toUpperCase(),
+            style: GText.mono.copyWith(color: GColors.onInk)),
       ),
     );
   }
@@ -140,6 +154,7 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
             : '$numero ${numero == 1 ? 'revisión' : 'revisiones'} · ${widget.libro.title}',
         meta: 'Capítulo ${widget.capitulo.numero.toString().padLeft(2, '0')}',
         onVolver: () => Navigator.of(context).maybePop(),
+        logo: false,
       );
 
   @override
@@ -161,7 +176,8 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(GSpacing.page),
             decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
+              border: Border(
+                  top: BorderSide(color: GColors.ink, width: GSpacing.border)),
             ),
             child: const GMono.muted('Formato · la-jaula-rota-review-v4'),
           ),

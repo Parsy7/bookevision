@@ -17,11 +17,16 @@ class GAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget> trailing;
   final VoidCallback? onBack;
 
+  /// Segunda línea bajo el título, p. ej. el estado del autoguardado.
+  /// Se alinea con el título, dejando libre el hueco del botón de atrás.
+  final Widget? subtitulo;
+
   const GAppBar({
     super.key,
     required this.title,
     this.trailing = const [],
     this.onBack,
+    this.subtitulo,
   });
 
   static const double _alto =
@@ -30,7 +35,8 @@ class GAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// Alto de la barra **sin** la barra de estado. El alto real lo mide el
   /// `Scaffold` sobre el widget ya construido, que incluye el hueco.
   @override
-  Size get preferredSize => const Size.fromHeight(_alto);
+  Size get preferredSize => Size.fromHeight(
+      _alto + (subtitulo == null ? 0 : GSpacing.appBarSubtitulo));
 
   @override
   Widget build(BuildContext context) {
@@ -46,34 +52,51 @@ class GAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   Widget _barra(BuildContext context) {
+    final subtitulo = this.subtitulo;
     return Container(
       padding: const EdgeInsets.fromLTRB(
           GSpacing.page, GSpacing.barTop, GSpacing.page, GSpacing.barBottom),
       decoration: BoxDecoration(
         color: GColors.paper,
-        border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
+        border: Border(
+            bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          GIconButton(
-            icon: Icons.arrow_back,
-            tooltip: 'Atrás',
-            outlined: true,
-            onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+          Row(
+            children: [
+              GIconButton(
+                icon: Icons.arrow_back,
+                tooltip: 'Atrás',
+                outlined: true,
+                onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+              ),
+              const SizedBox(width: GSpacing.barTop),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GText.appBar,
+                    ),
+                    if (subtitulo != null) ...[
+                      const SizedBox(height: GSpacing.gapXs),
+                      subtitulo,
+                    ],
+                  ],
+                ),
+              ),
+              for (final w in trailing) ...[
+                const SizedBox(width: GSpacing.barTop),
+                w,
+              ],
+            ],
           ),
-          const SizedBox(width: GSpacing.barTop),
-          Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GText.appBar,
-            ),
-          ),
-          for (final w in trailing) ...[
-            const SizedBox(width: GSpacing.barTop),
-            w,
-          ],
         ],
       ),
     );

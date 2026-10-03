@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 import '../theme/g_colors.dart';
+import '../theme/g_marca.dart';
 import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
 import '../widgets/g_bits.dart';
@@ -67,8 +68,22 @@ class _GLoginScreenState extends State<GLoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const GMono('BOOKEVISION'),
-                const SizedBox(height: GSpacing.barTop),
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        GMarca.logo,
+                        width: GSpacing.logoLogin,
+                        height: GSpacing.logoLogin,
+                        semanticLabel: 'bookevision',
+                      ),
+                      const SizedBox(height: GSpacing.gapSm),
+                      const GMono('bookevision'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: GSpacing.gap),
                 Text('Entrar', style: GText.appBar),
                 const SizedBox(height: GSpacing.gap),
                 GField(

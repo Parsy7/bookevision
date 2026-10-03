@@ -42,7 +42,8 @@ class _GLibroScreenState extends State<GLibroScreen> {
 
   Future<void> _nuevoCapitulo() async {
     final capitulo = await Navigator.of(context).push<Capitulo>(
-      MaterialPageRoute(builder: (_) => GCapituloFormScreen(libroId: widget.libro.id)),
+      MaterialPageRoute(
+          builder: (_) => GCapituloFormScreen(libroId: widget.libro.id)),
     );
     if (!mounted) return;
     await _refresh();
@@ -52,7 +53,8 @@ class _GLibroScreenState extends State<GLibroScreen> {
   void _abrir(Capitulo capitulo) {
     Navigator.of(context)
         .push(MaterialPageRoute(
-          builder: (_) => GReviewListScreen(libro: widget.libro, capitulo: capitulo),
+          builder: (_) =>
+              GReviewListScreen(libro: widget.libro, capitulo: capitulo),
         ))
         .then((_) => _refresh());
   }
@@ -62,8 +64,13 @@ class _GLibroScreenState extends State<GLibroScreen> {
       context,
       titulo: 'Capítulo ${c.numero}',
       items: const [
-        GMenuItem(label: 'Editar número y título', icon: Icons.edit, value: 'editar'),
-        GMenuItem(label: 'Borrar capítulo', icon: Icons.delete_outline, value: 'borrar', danger: true),
+        GMenuItem(
+            label: 'Editar número y título', icon: Icons.edit, value: 'editar'),
+        GMenuItem(
+            label: 'Borrar capítulo',
+            icon: Icons.delete_outline,
+            value: 'borrar',
+            danger: true),
       ],
     );
     if (!mounted) return;
@@ -71,7 +78,8 @@ class _GLibroScreenState extends State<GLibroScreen> {
       case 'editar':
         final editado = await Navigator.of(context).push<Capitulo>(
           MaterialPageRoute(
-            builder: (_) => GCapituloFormScreen(libroId: widget.libro.id, capitulo: c),
+            builder: (_) =>
+                GCapituloFormScreen(libroId: widget.libro.id, capitulo: c),
           ),
         );
         if (editado != null && mounted) await _refresh();
@@ -98,7 +106,8 @@ class _GLibroScreenState extends State<GLibroScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('NO SE PUDO BORRAR: $e', style: GText.mono.copyWith(color: GColors.onInk)),
+          content: Text('NO SE PUDO BORRAR: $e',
+              style: GText.mono.copyWith(color: GColors.onInk)),
         ));
       }
     }
@@ -108,6 +117,7 @@ class _GLibroScreenState extends State<GLibroScreen> {
         titulo: widget.libro.title,
         subtitulo: '$numero ${numero == 1 ? 'capítulo' : 'capítulos'}',
         onVolver: () => Navigator.of(context).maybePop(),
+        logo: false,
       );
 
   String _meta(Capitulo c) => switch (c.revisiones) {
@@ -127,7 +137,9 @@ class _GLibroScreenState extends State<GLibroScreen> {
         numero: c.numero,
         titulo: c.titulo,
         meta: _meta(c),
-        debajo: c.revisiones > 1 ? GMeter(total: c.revisiones, done: c.listas) : null,
+        debajo: c.revisiones > 1
+            ? GMeter(total: c.revisiones, done: c.listas)
+            : null,
         derecha: GStamp(
           c.isComplete ? 'Listo' : (c.revisiones == 0 ? 'Vacío' : 'En curso'),
           filled: c.isComplete,

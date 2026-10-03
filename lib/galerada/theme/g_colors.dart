@@ -58,8 +58,13 @@ class GColors {
   /// Texto, **todos** los bordes, rellenos y estado activo.
   static Color get ink => _current.ink;
 
-  /// Acento del tema: CTA principal, pendiente, eliminar, tachado.
+  /// Acento del tema: CTA principal, pendiente, tachado.
   static Color get red => _current.acento;
+
+  /// Rojo fijo del corrector, sin teñir por el tema: lo irreversible
+  /// (borrar decisiones, un capítulo, una revisión…) tiene que leerse
+  /// siempre como peligro, elija el usuario el tema que elija.
+  static const Color danger = Color(0xFFE4401C);
 
   /// «Escribir yo» y borde del editor.
   static Color get blue => _current.blue;

@@ -60,8 +60,8 @@ class GStamp extends StatelessWidget {
       ),
       child: Text(
         label.toUpperCase(),
-        style: GText.monoSm
-            .copyWith(color: filled ? GColors.onInk : GColors.ink),
+        style:
+            GText.monoSm.copyWith(color: filled ? GColors.onInk : GColors.ink),
       ),
     );
   }

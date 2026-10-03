@@ -72,7 +72,8 @@ class _GLibroListScreenState extends State<GLibroListScreen> {
       fila: (libro, _) => GFila(
         id: 'libro-${libro.id}',
         titulo: libro.title,
-        meta: '${libro.capitulos} ${libro.capitulos == 1 ? 'capítulo' : 'capítulos'}',
+        meta:
+            '${libro.capitulos} ${libro.capitulos == 1 ? 'capítulo' : 'capítulos'}',
         derecha: Icon(Icons.chevron_right, color: GColors.ink),
         onTap: () => _abrirLibro(libro),
       ),

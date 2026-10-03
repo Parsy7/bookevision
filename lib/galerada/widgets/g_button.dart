@@ -49,8 +49,7 @@ class GButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (icon != null) ...[
-              Icon(icon,
-                  size: 20, color: habilitado ? texto : GColors.grey3),
+              Icon(icon, size: 20, color: habilitado ? texto : GColors.grey3),
               const SizedBox(width: 10),
             ],
             Flexible(
@@ -77,12 +76,17 @@ class GIconButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool outlined;
 
+  /// En vez de los 40×40 de siempre, ocupa el alto que le dé el padre (p. ej.
+  /// para igualarlo al campo de texto de al lado, dentro de un `IntrinsicHeight`).
+  final bool stretch;
+
   const GIconButton({
     super.key,
     required this.icon,
     required this.tooltip,
     required this.onPressed,
     this.outlined = false,
+    this.stretch = false,
   });
 
   @override
@@ -94,7 +98,8 @@ class GIconButton extends StatelessWidget {
         onTap: onPressed,
         child: Container(
           width: GSpacing.iconBtn,
-          height: GSpacing.iconBtn,
+          height: stretch ? null : GSpacing.iconBtn,
+          alignment: stretch ? Alignment.center : null,
           decoration: BoxDecoration(
             color: outlined ? null : tinta,
             border: Border.all(color: tinta, width: GSpacing.border),

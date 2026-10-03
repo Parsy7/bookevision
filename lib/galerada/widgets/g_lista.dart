@@ -18,8 +18,11 @@ class GHero extends StatelessWidget {
   /// Titular un punto más pequeño ([GText.heroSm]).
   final bool compacto;
 
-  /// Con esto, «← Volver» a la izquierda de la marca.
+  /// Con esto, «Volver» a la izquierda de la marca, con la misma flecha
+  /// que el botón de atrás de [GAppBar].
   final VoidCallback? onVolver;
+
+  final bool? logo;
 
   /// A la derecha: un enlace ([accion] + [onAccion]) o, si no, un dato en
   /// mono apagado ([meta]).
@@ -34,6 +37,7 @@ class GHero extends StatelessWidget {
     this.tituloEm,
     this.compacto = false,
     this.onVolver,
+    this.logo = true,
     this.accion,
     this.onAccion,
     this.meta,
@@ -50,10 +54,12 @@ class GHero extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(
           GSpacing.page, GSpacing.heroTop, GSpacing.page, GSpacing.gap),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
+        border: Border(
+            bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: GSpacing.gapSm,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -61,17 +67,30 @@ class GHero extends StatelessWidget {
               Row(
                 children: [
                   if (onVolver != null) ...[
-                    GestureDetector(onTap: onVolver, child: const GMono.muted('← Volver')),
+                    GestureDetector(
+                      onTap: onVolver,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.arrow_back,
+                              size: 14, color: GColors.grey2),
+                          const SizedBox(width: GSpacing.gapXs),
+                          const GMono.muted('Volver'),
+                        ],
+                      ),
+                    ),
                     const SizedBox(width: GSpacing.gap),
                   ],
-                  Image.asset(
-                    GMarca.logo,
-                    width: GSpacing.logoMarca,
-                    height: GSpacing.logoMarca,
-                    excludeFromSemantics: true,
-                  ),
-                  const SizedBox(width: GSpacing.gapSm),
-                  const GMono('bookevision'),
+                  if (logo == true) ...[
+                    Image.asset(
+                      GMarca.logo,
+                      width: GSpacing.logoMarca,
+                      height: GSpacing.logoMarca,
+                      excludeFromSemantics: true,
+                    ),
+                    const SizedBox(width: GSpacing.gapSm),
+                    const GMono('bookevision'),
+                  ],
                 ],
               ),
               if (accion != null && onAccion != null)
@@ -87,7 +106,9 @@ class GHero extends StatelessWidget {
               children: [
                 TextSpan(text: titulo),
                 if (tituloEm != null)
-                  TextSpan(text: tituloEm, style: estilo.copyWith(color: GColors.red)),
+                  TextSpan(
+                      text: tituloEm,
+                      style: estilo.copyWith(color: GColors.red)),
               ],
             ),
           ),
@@ -135,17 +156,22 @@ class GFila extends StatelessWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: GSpacing.page, vertical: GSpacing.gap),
+        padding: const EdgeInsets.symmetric(
+            horizontal: GSpacing.page, vertical: GSpacing.gap),
         decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
+          border: Border(
+              bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
         ),
         child: Row(
-          crossAxisAlignment: numero == null ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+          crossAxisAlignment: numero == null
+              ? CrossAxisAlignment.center
+              : CrossAxisAlignment.start,
           children: [
             if (numero != null) ...[
               SizedBox(
                 width: GSpacing.rowNumber,
-                child: Text(numero.toString().padLeft(2, '0'), style: GText.bigNumber),
+                child: Text(numero.toString().padLeft(2, '0'),
+                    style: GText.bigNumber),
               ),
               const SizedBox(width: GSpacing.blockV),
             ],
@@ -226,9 +252,11 @@ class GPantallaLista<T> extends StatelessWidget {
           future: future,
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator(color: GColors.ink));
+              return Center(
+                  child: CircularProgressIndicator(color: GColors.ink));
             }
-            if (snap.hasError) return _Error(error: snap.error!, onRetry: onRefresh);
+            if (snap.hasError)
+              return _Error(error: snap.error!, onRetry: onRefresh);
             final items = snap.data ?? const [];
             if (items.isEmpty) return vacia;
 
@@ -240,10 +268,13 @@ class GPantallaLista<T> extends StatelessWidget {
                   onRefresh: onRefresh,
                   child: ListView.builder(
                     padding: EdgeInsets.only(
-                      bottom: GSpacing.fab + GSpacing.page * 2 + MediaQuery.paddingOf(context).bottom,
+                      bottom: GSpacing.fab +
+                          GSpacing.page * 2 +
+                          MediaQuery.paddingOf(context).bottom,
                     ),
                     itemCount: items.length + 1,
-                    itemBuilder: (_, i) => i == 0 ? hero(items) : fila(items[i - 1], i - 1),
+                    itemBuilder: (_, i) =>
+                        i == 0 ? hero(items) : fila(items[i - 1], i - 1),
                   ),
                 ),
                 Positioned(
@@ -293,7 +324,11 @@ class GListaVacia extends StatelessWidget {
               children: [
                 Text(texto, style: GText.prose),
                 const SizedBox(height: GSpacing.page),
-                GButton(label: boton, icon: Icons.add, fill: GFill.ink, onPressed: onBoton),
+                GButton(
+                    label: boton,
+                    icon: Icons.add,
+                    fill: GFill.ink,
+                    onPressed: onBoton),
               ],
             ),
           ),
@@ -322,7 +357,8 @@ class _Error extends StatelessWidget {
           const SizedBox(height: GSpacing.gapSm),
           Text('$error', style: GText.reason),
           const SizedBox(height: GSpacing.page),
-          GButton(label: 'Reintentar', fill: GFill.ink, onPressed: () => onRetry()),
+          GButton(
+              label: 'Reintentar', fill: GFill.ink, onPressed: () => onRetry()),
         ],
       ),
     );

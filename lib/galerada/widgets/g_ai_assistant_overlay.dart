@@ -49,7 +49,8 @@ mixin GAiConAsistente<T extends StatefulWidget> on State<T> {
             ocultarPill();
           }),
         if (ai != null)
-          GAiAssistantOverlay(controller: ai, extraBottomOffset: extraBottomOffset),
+          GAiAssistantOverlay(
+              controller: ai, extraBottomOffset: extraBottomOffset),
       ],
     );
   }
@@ -78,7 +79,8 @@ class GAiAssistantOverlay extends StatelessWidget {
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
-        final bottomSafe = MediaQuery.paddingOf(context).bottom + extraBottomOffset;
+        final bottomSafe =
+            MediaQuery.paddingOf(context).bottom + extraBottomOffset;
         switch (controller.mode) {
           case GAiAssistantMode.hidden:
             return const SizedBox.shrink();
@@ -102,12 +104,16 @@ class GAiAssistantOverlay extends StatelessWidget {
             final ancho = (pantalla.width - 2 * GSpacing.aiEdge)
                 .clamp(0, GSpacing.aiPanelMax)
                 .toDouble();
-            final altoDisponible =
-                pantalla.height - GSpacing.aiPanelTop - teclado - extraBottomOffset;
-            final alto = controller.panelHeight.clamp(
-              GAiAssistantController.minHeight,
-              math.max(GAiAssistantController.minHeight, altoDisponible),
-            ).toDouble();
+            final altoDisponible = pantalla.height -
+                GSpacing.aiPanelTop -
+                teclado -
+                extraBottomOffset;
+            final alto = controller.panelHeight
+                .clamp(
+                  GAiAssistantController.minHeight,
+                  math.max(GAiAssistantController.minHeight, altoDisponible),
+                )
+                .toDouble();
             return Positioned.fill(
               child: Stack(
                 children: [
@@ -181,7 +187,8 @@ class _Burbuja extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: GColors.red,
-                    border: Border.all(color: GColors.paper, width: GSpacing.aiBadgeRing),
+                    border: Border.all(
+                        color: GColors.paper, width: GSpacing.aiBadgeRing),
                   ),
                 ),
               ),
@@ -253,7 +260,9 @@ class _PanelState extends State<_Panel> {
 
   void _avisar(String texto) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(texto, style: GText.mono.copyWith(color: GColors.onInk))),
+      SnackBar(
+          content:
+              Text(texto, style: GText.mono.copyWith(color: GColors.onInk))),
     );
   }
 
@@ -270,11 +279,14 @@ class _PanelState extends State<_Panel> {
   Future<void> _convertir(GAiMessage msg) async {
     final ok = await widget.controller.convertirEnSugerencia(msg);
     if (mounted) {
-      _avisar(ok ? 'SUGERENCIA AÑADIDA AL CAPÍTULO' : 'NO SE PUDO CONVERTIR EN SUGERENCIA');
+      _avisar(ok
+          ? 'SUGERENCIA AÑADIDA AL CAPÍTULO'
+          : 'NO SE PUDO CONVERTIR EN SUGERENCIA');
     }
   }
 
-  Border get _linea => Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border));
+  Border get _linea =>
+      Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border));
 
   @override
   Widget build(BuildContext context) {
@@ -318,7 +330,8 @@ class _PanelState extends State<_Panel> {
               ],
             ),
           ),
-          if (c.seleccionContexto != null) _Contexto(texto: c.seleccionContexto!),
+          if (c.seleccionContexto != null)
+            _Contexto(texto: c.seleccionContexto!),
           Expanded(
             child: c.messages.isEmpty && !c.enviando
                 ? Center(
@@ -336,7 +349,8 @@ class _PanelState extends State<_Panel> {
                     padding: const EdgeInsets.all(GSpacing.blockV),
                     itemCount: c.messages.length + (c.enviando ? 1 : 0),
                     itemBuilder: (_, i) {
-                      if (i == c.messages.length) return const _BurbujaPensando();
+                      if (i == c.messages.length)
+                        return const _BurbujaPensando();
                       final mensaje = c.messages[i];
                       return _Mensaje(
                         mensaje: mensaje,
@@ -351,50 +365,57 @@ class _PanelState extends State<_Panel> {
           Container(
             padding: const EdgeInsets.all(GSpacing.gapSm),
             decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
+              border: Border(
+                  top: BorderSide(color: GColors.ink, width: GSpacing.border)),
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: GSpacing.gapSm),
-                    decoration: BoxDecoration(
-                      color: GColors.white,
-                      border: Border.all(color: GColors.ink, width: GSpacing.border),
-                    ),
-                    child: TextField(
-                      controller: _controller,
-                      autofocus: true,
-                      readOnly: _soloFoco,
-                      showCursor: true,
-                      onTap: () {
-                        if (_soloFoco) setState(() => _soloFoco = false);
-                      },
-                      style: GText.field,
-                      cursorColor: GColors.blue,
-                      cursorWidth: GSpacing.caret,
-                      minLines: 1,
-                      maxLines: 5,
-                      textCapitalization: TextCapitalization.sentences,
-                      onSubmitted: (_) => _enviar(),
-                      decoration: InputDecoration(
-                        isCollapsed: true,
-                        contentPadding: const EdgeInsets.symmetric(vertical: GSpacing.barTop),
-                        border: InputBorder.none,
-                        hintText: 'Escribe tu mensaje…',
-                        hintStyle: GText.field.copyWith(color: GColors.grey3),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: GSpacing.gapSm),
+                      decoration: BoxDecoration(
+                        color: GColors.white,
+                        border: Border.all(
+                            color: GColors.ink, width: GSpacing.border),
+                      ),
+                      child: TextField(
+                        controller: _controller,
+                        autofocus: true,
+                        readOnly: _soloFoco,
+                        showCursor: true,
+                        onTap: () {
+                          if (_soloFoco) setState(() => _soloFoco = false);
+                        },
+                        style: GText.field,
+                        cursorColor: GColors.blue,
+                        cursorWidth: GSpacing.caret,
+                        minLines: 1,
+                        maxLines: 5,
+                        textCapitalization: TextCapitalization.sentences,
+                        onSubmitted: (_) => _enviar(),
+                        decoration: InputDecoration(
+                          isCollapsed: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: GSpacing.barTop),
+                          border: InputBorder.none,
+                          hintText: 'Escribe tu mensaje…',
+                          hintStyle: GText.field.copyWith(color: GColors.grey3),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: GSpacing.gapSm),
-                GIconButton(
-                  icon: Icons.arrow_upward,
-                  tooltip: 'Enviar',
-                  onPressed: c.enviando ? null : _enviar,
-                ),
-              ],
+                  const SizedBox(width: GSpacing.gapSm),
+                  GIconButton(
+                    icon: Icons.arrow_upward,
+                    tooltip: 'Enviar',
+                    onPressed: c.enviando ? null : _enviar,
+                    stretch: true,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -427,7 +448,8 @@ class _ContextoState extends State<_Contexto> {
         width: double.infinity,
         padding: const EdgeInsets.all(GSpacing.gapSm),
         decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
+          border: Border(
+              bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -435,10 +457,15 @@ class _ContextoState extends State<_Contexto> {
             Expanded(
               child: _abierto
                   ? ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: GSpacing.aiContextMax),
-                      child: SingleChildScrollView(child: Text(texto, style: estilo)),
+                      constraints: const BoxConstraints(
+                          maxHeight: GSpacing.aiContextMax),
+                      child: SingleChildScrollView(
+                          child: Text(texto, style: estilo)),
                     )
-                  : Text(texto, maxLines: 2, overflow: TextOverflow.ellipsis, style: estilo),
+                  : Text(texto,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: estilo),
             ),
             Icon(
               _abierto ? Icons.expand_less : Icons.expand_more,
@@ -484,7 +511,8 @@ class _Mensaje extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: GSpacing.gapSm),
           padding: const EdgeInsets.all(GSpacing.gapSm),
           color: GColors.ink,
-          child: Text(mensaje.texto, style: GText.chat.copyWith(color: GColors.onInk)),
+          child: Text(mensaje.texto,
+              style: GText.chat.copyWith(color: GColors.onInk)),
         ),
       );
     }
@@ -505,7 +533,8 @@ class _Mensaje extends StatelessWidget {
               child: Stack(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.only(right: GSpacing.aiCopyGutter),
+                    padding:
+                        const EdgeInsets.only(right: GSpacing.aiCopyGutter),
                     // Seleccionable con pulsación larga, para copiar solo un
                     // trozo (el mensaje entero ya lo copia el icono).
                     child: SelectionArea(
@@ -524,7 +553,8 @@ class _Mensaje extends StatelessWidget {
                         width: GSpacing.aiCopy,
                         height: GSpacing.aiCopy,
                         decoration: BoxDecoration(
-                          border: Border.all(color: GColors.grey3, width: GSpacing.border),
+                          border: Border.all(
+                              color: GColors.grey3, width: GSpacing.border),
                         ),
                         child: Icon(Icons.copy, size: 11, color: GColors.grey2),
                       ),
@@ -626,14 +656,16 @@ class _BurbujaPensandoState extends State<_BurbujaPensando>
                   decoration: BoxDecoration(
                     color: GColors.white,
                     borderRadius: const BorderRadius.all(Radius.circular(999)),
-                    border: Border.all(color: GColors.ink, width: GSpacing.border),
+                    border:
+                        Border.all(color: GColors.ink, width: GSpacing.border),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: List.generate(3, (i) {
                       final s = _altura(i);
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: GSpacing.gapXs / 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: GSpacing.gapXs / 2),
                         child: Transform.translate(
                           offset: Offset(0, -_salto * s),
                           child: Transform.scale(
@@ -653,11 +685,13 @@ class _BurbujaPensandoState extends State<_BurbujaPensando>
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(left: GSpacing.blockV, top: GSpacing.gapXs),
+                  padding: const EdgeInsets.only(
+                      left: GSpacing.blockV, top: GSpacing.gapXs),
                   child: _burbujita(_cola, 0.7 + 0.3 * respira),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(left: GSpacing.gapSm, top: GSpacing.gapXs / 2),
+                  padding: const EdgeInsets.only(
+                      left: GSpacing.gapSm, top: GSpacing.gapXs / 2),
                   child: _burbujita(_colita, 0.7 + 0.3 * (1 - respira)),
                 ),
               ],

@@ -6,7 +6,7 @@ import 'g_bits.dart';
 
 /// Color de un botón de acción. El tono solo cambia el color; la forma es
 /// siempre la misma.
-enum GTone { ink, red, blue }
+enum GTone { ink, red, blue, danger }
 
 /// Una acción de la rejilla: tecla mono, rótulo y estado.
 class GAction {
@@ -96,6 +96,7 @@ class _Boton extends StatelessWidget {
       GTone.ink => GColors.ink,
       GTone.red => GColors.red,
       GTone.blue => GColors.blue,
+      GTone.danger => GColors.danger,
     };
     final sobre = accion.tone == GTone.ink ? GColors.onInk : GColors.onRed;
     final color = accion.active ? sobre : tono;
