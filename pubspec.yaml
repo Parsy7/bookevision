@@ -36,7 +36,8 @@ flutter:
 # Icono de la app. El repo no lleva android/ (lo genera el CI con
 # `flutter create`), así que el CI corre `dart run flutter_launcher_icons`
 # después de generarlo. Fondo y marca salen del logo (ver BRAND_GUIDE.md →
-# Marca).
+# Marca). windows/ sí va en el repo, con windows/runner/resources/app_icon.ico
+# hecho a partir de assets/logo/logo.png.
 flutter_launcher_icons:
   android: true
   ios: false

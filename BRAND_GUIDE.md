@@ -20,8 +20,9 @@ widget por componente.
 ### Mobile first — PRIORITARIO
 La app se usa desde el móvil:
 - Diseño base pensado para anchos ~360-430 logical pixels (dp).
-- Lo que pueda estirarse en tablet lleva tope de ancho (p. ej. el panel de la IA,
-  `GSpacing.aiPanelMax`).
+- En una ventana ancha (Windows, tablet en horizontal) la app entera queda como una columna
+  centrada de `GSpacing.anchoApp` (640) con una raya de tinta a cada lado (`GAnchoApp`): se ve
+  como en el móvil. Dentro, `MediaQuery` mide la columna, no la ventana.
 - Área táctil mínima y tamaño mínimo de texto interactivo: **pendiente de decisión** (ver
   «Pendiente»). Mientras tanto, los elementos nuevos que se toquen deben tener al menos 44dp de
   área táctil.
@@ -253,6 +254,7 @@ dice **cuál buscar**.
 | Portada con lista (hero, filas, vacía, error, FAB) | `GPantallaLista`, `GHero`, `GFila`, `GListaVacia` | `g_lista.dart` |
 | Prosa de lectura / editable | `GProseFlow` / `GProseBlock` | `g_prose.dart` |
 | Pantalla de carga al abrir la app | `GSplash` | `screens/g_splash.dart` |
+| Columna de ancho máximo en ventanas anchas | `GAnchoApp` | `g_ancho_app.dart` |
 | Tarjeta de sugerencia | `GSuggestionCard` | `g_suggestion_card.dart` |
 | Asistente de IA en una pantalla | `GAiConAsistente` (mixin) | `g_ai_assistant_overlay.dart` |
 | Respuesta de la IA en Markdown | `GAiMarkdown` | `g_ai_markdown.dart` |

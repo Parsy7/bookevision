@@ -58,6 +58,10 @@ class GSpacing {
   static const double gapSm = 8;
   static const double gapXs = 4;
 
+  /// Ancho máximo de la app: en una ventana más ancha (escritorio, tablet en
+  /// horizontal) queda como una columna centrada de este ancho.
+  static const double anchoApp = 640;
+
   /// Aire sobre la marca en la cabecera (hero) de las portadas.
   static const double heroTop = 22;
 

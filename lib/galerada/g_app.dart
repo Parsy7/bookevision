@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import 'screens/g_auth_gate.dart';
 import 'screens/g_splash.dart';
 import 'theme/g_theme.dart';
+import 'widgets/g_ancho_app.dart';
 
 /// Raíz de la piel «Galerada». Comparte `models/`, `services/` y `utils/` con
 /// la piel original: aquí solo cambia la vista.
@@ -27,7 +28,10 @@ class GaleradaApp extends StatelessWidget {
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: const [Locale('es'), Locale('en')],
-        home: const GSplash(child: GAuthGate()),
+        // La pantalla de carga va por fuera del ancho máximo: en escritorio
+        // ocupa la ventana entera, y la app aparece debajo ya en su columna.
+        builder: (context, child) => GSplash(child: GAnchoApp(child: child!)),
+        home: const GAuthGate(),
       ),
     );
   }

@@ -12,6 +12,7 @@ import 'package:bookevision/models/libro.dart';
 import 'package:bookevision/models/review_summary.dart';
 import 'package:bookevision/models/review.dart';
 import 'package:bookevision/galerada/screens/g_confirm_screen.dart';
+import 'package:bookevision/galerada/screens/g_libro_list_screen.dart';
 import 'package:bookevision/galerada/screens/g_libro_screen.dart';
 import 'package:bookevision/galerada/screens/g_original_screen.dart';
 import 'package:bookevision/galerada/screens/g_preview_screen.dart';
@@ -65,6 +66,11 @@ class _ApiDosSueltos extends ApiFalsa {
         ReviewSummary(id: 'a', format: 'f', title: 'Final', total: 0, resolved: 0, manual: 0, finalizada: true),
         ReviewSummary(id: 'b', format: 'f', title: 'Borrador', total: 0, resolved: 0, manual: 0),
       ];
+}
+
+class _ApiConLibros extends ApiFalsa {
+  @override
+  Future<List<Libro>> getLibros() async => const [_libro];
 }
 
 /// Un libro con muchos capítulos, más de los que caben en la hoja de mover.
@@ -133,13 +139,22 @@ void main() {
           reason: 'el hero es el título del capítulo');
       expect(find.textContaining('LA JAULA'), findsNothing,
           reason: 'el hero va en Instrument Serif, no en mayúsculas mono');
-      expect(find.text('BOOKEVISION'), findsOneWidget,
-          reason: 'la marca sí es mono en mayúsculas');
-      expect(find.descendant(of: find.byType(GHero), matching: find.byType(Image)), findsOneWidget,
-          reason: 'el logo va junto a «bookevision»');
+      expect(find.text('BOOKEVISION'), findsNothing,
+          reason: 'la marca y el logo solo van en «Mis libros»');
+      expect(find.descendant(of: find.byType(GHero), matching: find.byType(Image)), findsNothing);
       expect(find.byType(GMeter), findsWidgets);
       expect(find.byType(GStamp), findsWidgets);
       expect(find.text('01'), findsOneWidget, reason: 'número de dos dígitos');
+    });
+
+    testWidgets('«Mis libros» lleva el logo junto a la marca', (tester) async {
+      await tester.pumpWidget(_app(const GLibroListScreen(), _ApiConLibros()));
+      await _asentar(tester);
+
+      expect(find.text('BOOKEVISION'), findsOneWidget,
+          reason: 'la marca es mono en mayúsculas');
+      expect(find.descendant(of: find.byType(GHero), matching: find.byType(Image)), findsOneWidget,
+          reason: 'el logo va junto a «bookevision»');
     });
 
     testWidgets('lista vacía: página en blanco', (tester) async {
