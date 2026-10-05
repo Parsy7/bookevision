@@ -80,9 +80,10 @@ jobs:
           remote_user: ${{ secrets.SSH_USER }}
           remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+  # Independiente del APK: la API no usa nada del build de Android, y si
+  # build-apk falla (o se queda sin runner) la API tiene que desplegarse igual.
   deploy-api:
     runs-on: ubuntu-latest
-    needs: build-apk
     steps:
       - uses: actions/checkout@v4
 
