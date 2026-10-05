@@ -16,7 +16,14 @@ class GProseEditActions {
   final VoidCallback guardar;
   final VoidCallback cancelar;
 
-  const GProseEditActions({required this.guardar, required this.cancelar});
+  /// Historial del campo, para el botón de deshacer.
+  final UndoHistoryController historial;
+
+  const GProseEditActions({
+    required this.guardar,
+    required this.cancelar,
+    required this.historial,
+  });
 }
 
 /// Prosa de solo lectura con su número de párrafo en el margen. La usan la
@@ -145,6 +152,12 @@ class GProseBlock extends StatefulWidget {
   final void Function(String seleccion)? onSeleccionCambia;
   final VoidCallback? onSeleccionVacia;
 
+  /// Capítulo suelto: el bloque es el capítulo entero, así que se abre ya en
+  /// el campo, sin pulsación larga, y no sale nunca de él. Lo escrito solo
+  /// pasa a la sesión (y se guarda) con "Guardar"; mientras tanto la sesión
+  /// sabe que hay cambios sin guardar. "Cancelar" vuelve a lo guardado.
+  final bool siempreEditando;
+
   const GProseBlock({
     super.key,
     required this.text,
@@ -154,6 +167,7 @@ class GProseBlock extends StatefulWidget {
     this.onEditing,
     this.onSeleccionCambia,
     this.onSeleccionVacia,
+    this.siempreEditando = false,
   });
 
   @override
@@ -171,7 +185,12 @@ class _GProseBlockState extends State<GProseBlock> {
   final _controller = TextEditingController();
   final _focus = FocusNode();
   final _textKey = GlobalKey();
+  final _historial = UndoHistoryController();
   GProseEditActions? _acciones;
+
+  /// Con [GProseBlock.siempreEditando]: el texto que hay en la sesión, para
+  /// saber si lo del campo está sin guardar.
+  String _guardado = '';
 
   Offset? _inicioPulsacion;
   int? _inicioSeleccion;
@@ -187,15 +206,65 @@ class _GProseBlockState extends State<GProseBlock> {
   @override
   void initState() {
     super.initState();
+    if (widget.siempreEditando) _editarSiempre();
     _controller.addListener(_onSeleccionEnCampo);
+    _controller.addListener(_onTextoCambia);
   }
 
   @override
   void dispose() {
     _controller.removeListener(_onSeleccionEnCampo);
+    _controller.removeListener(_onTextoCambia);
     _controller.dispose();
+    _historial.dispose();
     _focus.dispose();
     super.dispose();
+  }
+
+  String _valorGuardado(ManualEdit? edit) => edit?.value ?? widget.text;
+
+  /// Entra en edición sin foco (el teclado no salta al abrir el capítulo) y
+  /// con el cursor al principio. La pantalla se entera tras el primer frame:
+  /// durante `initState` no puede reconstruirse.
+  void _editarSiempre() {
+    final edit = context.read<ReviewSession>().manualEdits[_blockId];
+    _guardado = _valorGuardado(edit);
+    _controller.value = TextEditingValue(
+      text: _guardado,
+      selection: const TextSelection.collapsed(offset: 0),
+    );
+    _editing = true;
+    final acciones = _nuevasAcciones();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onEditing?.call(acciones, activa: true);
+    });
+  }
+
+  GProseEditActions _nuevasAcciones() {
+    final acciones = GProseEditActions(
+        guardar: _save, cancelar: _cancel, historial: _historial);
+    _acciones = acciones;
+    return acciones;
+  }
+
+  void _onTextoCambia() {
+    if (!widget.siempreEditando) return;
+    context.read<ReviewSession>().sinGuardar = _controller.text != _guardado;
+  }
+
+  /// Si lo guardado cambia por fuera (p. ej. "Borrar decisiones"), el campo
+  /// pasa a mostrarlo. Tras un "Guardar" propio coincide con el campo y no
+  /// se toca nada.
+  void _sincronizarGuardado(String guardado) {
+    if (guardado == _guardado) return;
+    _guardado = guardado;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _controller.text == _guardado) return;
+      _controller.value = TextEditingValue(
+        text: _guardado,
+        selection: const TextSelection.collapsed(offset: 0),
+      );
+    });
   }
 
   /// Ya en modo edición, seleccionar con las asas nativas del campo también
@@ -307,9 +376,7 @@ class _GProseBlockState extends State<GProseBlock> {
       _editing = true;
       _showingOriginal = false;
     });
-    final acciones = GProseEditActions(guardar: _save, cancelar: _cancel);
-    _acciones = acciones;
-    widget.onEditing?.call(acciones, activa: true);
+    widget.onEditing?.call(_nuevasAcciones(), activa: true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _focus.requestFocus();
     });
@@ -326,15 +393,37 @@ class _GProseBlockState extends State<GProseBlock> {
 
   void _save() {
     if (!_editing) return;
-    context
-        .read<ReviewSession>()
-        .setManualEdit(widget.start, widget.end, widget.text, _controller.text);
-    _terminar();
+    final session = context.read<ReviewSession>();
+    final texto = _controller.text;
+    if (!widget.siempreEditando) {
+      session.setManualEdit(widget.start, widget.end, widget.text, texto);
+      _terminar();
+      return;
+    }
+    // Volver a dejarlo como el original no es una edición: sin franja roja.
+    if (texto == widget.text) {
+      session.removeManualEdit(_blockId);
+    } else {
+      session.setManualEdit(widget.start, widget.end, widget.text, texto);
+    }
+    _guardado = texto;
+    session.sinGuardar = false;
+    session.saveNow();
   }
 
   void _cancel() {
     if (!_editing) return;
-    _terminar();
+    if (!widget.siempreEditando) {
+      _terminar();
+      return;
+    }
+    // Pasa por el historial: "deshacer" recupera lo descartado.
+    final cursor = _controller.selection.baseOffset;
+    _controller.value = TextEditingValue(
+      text: _guardado,
+      selection: TextSelection.collapsed(
+          offset: _clamp(cursor, _guardado.length)),
+    );
   }
 
   void _restore() {
@@ -352,6 +441,7 @@ class _GProseBlockState extends State<GProseBlock> {
     final edit = context.watch<ReviewSession>().manualEdits[_blockId];
     final editado = edit != null;
     final mostrado = (editado && !_showingOriginal) ? edit.value : widget.text;
+    if (widget.siempreEditando) _sincronizarGuardado(_valorGuardado(edit));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -447,6 +537,7 @@ class _GProseBlockState extends State<GProseBlock> {
   Widget _campo() {
     return TextField(
       controller: _controller,
+      undoController: _historial,
       focusNode: _focus,
       style: _style,
       strutStyle: _strut,

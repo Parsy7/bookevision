@@ -70,6 +70,18 @@ class ReviewSession extends ChangeNotifier {
   bool get canSave =>
       _saveStatus == SaveStatus.pending || _saveStatus == SaveStatus.error;
 
+  bool _sinGuardar = false;
+
+  /// Hay texto escrito en el editor que aún no se ha pasado a la sesión con
+  /// "Guardar". No es un [SaveStatus]: lo que está en la sesión sí puede
+  /// estar guardado; lo que falta es el borrador del campo.
+  bool get sinGuardar => _sinGuardar;
+  set sinGuardar(bool valor) {
+    if (_sinGuardar == valor) return;
+    _sinGuardar = valor;
+    notifyListeners();
+  }
+
   /// Capítulo suelto (sin sugerencias): se puede marcar como terminado a
   /// mano, ya que no hay sugerencias cuya resolución lo diga por él.
   bool get esSuelto => _review != null && suggestions.isEmpty;

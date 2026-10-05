@@ -339,39 +339,110 @@ void main() {
   });
 
   group('prosa', () {
-    testWidgets('la pulsación larga abre todo el capítulo con el cursor donde '
-        'se pulsa', (tester) async {
+    testWidgets('un capítulo suelto se abre ya en edición, sin pulsación larga',
+        (tester) async {
       await tester.pumpWidget(
           _app(const GReviewerScreen(reviewId: 'doc'), ApiFalsa(_documento())));
       await _asentar(tester);
 
-      final bloque = find.byType(GProseBlock);
-      expect(bloque, findsOneWidget);
-      final caja = tester.getRect(bloque);
-      final antes = caja;
-
-      final punto = Offset(caja.left + 60, caja.top + 40);
-      await tester.longPressAt(punto);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
-
+      expect(find.byType(GProseBlock), findsOneWidget);
       final campo = tester.widget<EditableText>(find.byType(EditableText));
       expect(campo.controller.text, _doc,
           reason: 'el capítulo entero, no un párrafo');
 
-      final estado =
-          tester.state<EditableTextState>(find.byType(EditableText));
-      final sel = estado.textEditingValue.selection;
-      expect(sel.baseOffset, greaterThan(0));
-      expect(sel.baseOffset, lessThan(_doc.length),
-          reason: 'ni al principio ni al final');
-
-      expect(tester.getRect(bloque).top, closeTo(antes.top, 0.5),
-          reason: 'entrar a editar no mueve el bloque');
-      expect(find.text('Guardar'), findsOneWidget,
-          reason: 'las acciones van en la barra fija, no dentro del bloque');
+      expect(find.text('Revisar y confirmar'), findsOneWidget);
+      expect(find.byTooltip('Guardar'), findsOneWidget,
+          reason: 'las acciones van en la barra fija, junto a la CTA');
+      expect(find.byTooltip('Deshacer'), findsOneWidget);
+      expect(find.byTooltip('Descartar cambios'), findsOneWidget);
+      expect(find.text('● CAMBIOS SIN GUARDAR'), findsNothing);
 
       await tester.pump(const Duration(seconds: 2));
+    });
+
+    testWidgets('escribir no guarda: avisa hasta que se pulsa Guardar',
+        (tester) async {
+      await tester.pumpWidget(
+          _app(const GReviewerScreen(reviewId: 'doc'), ApiFalsa(_documento())));
+      await _asentar(tester);
+
+      await tester.enterText(find.byType(EditableText), 'Capítulo recortado.');
+      await tester.pump(const Duration(seconds: 2));
+      expect(find.text('● CAMBIOS SIN GUARDAR'), findsOneWidget,
+          reason: 'sin autoguardado: sigue sin guardar pasado el debounce');
+
+      await tester.tap(find.byTooltip('Guardar'));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('● CAMBIOS SIN GUARDAR'), findsNothing);
+      expect(find.text('✓ GUARDADO'), findsOneWidget);
+      expect(find.byType(EditableText), findsOneWidget,
+          reason: 'guardar no saca del modo edición');
+
+      await tester.pump(const Duration(seconds: 2));
+    });
+
+    testWidgets('cancelar vuelve a lo guardado y deshacer lo recupera',
+        (tester) async {
+      await tester.pumpWidget(
+          _app(const GReviewerScreen(reviewId: 'doc'), ApiFalsa(_documento())));
+      await _asentar(tester);
+
+      TextEditingController controlador() =>
+          tester.widget<EditableText>(find.byType(EditableText)).controller;
+
+      // El historial solo apunta con el campo enfocado y agrupa los cambios
+      // muy seguidos: se toca el campo y se deja pasar su ventana.
+      await tester.tap(find.byType(EditableText));
+      await tester.pump(const Duration(seconds: 1));
+      await tester.enterText(find.byType(EditableText), 'Otra cosa.');
+      await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.byTooltip('Descartar cambios'));
+      await tester.pump();
+      expect(controlador().text, _doc);
+      expect(find.text('● CAMBIOS SIN GUARDAR'), findsNothing);
+
+      await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.byTooltip('Deshacer'));
+      await tester.pump();
+      expect(controlador().text, 'Otra cosa.');
+      expect(find.text('● CAMBIOS SIN GUARDAR'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 2));
+    });
+
+    testWidgets('salir con cambios sin guardar pide confirmación',
+        (tester) async {
+      await tester.pumpWidget(_app(
+        Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const GReviewerScreen(reviewId: 'doc'))),
+            child: const Text('abrir'),
+          ),
+        ),
+        ApiFalsa(_documento()),
+      ));
+      await tester.tap(find.text('abrir'));
+      await _asentar(tester);
+
+      await tester.enterText(find.byType(EditableText), 'Sin guardar.');
+      await tester.pump();
+      await tester.tap(find.byTooltip('Atrás'));
+      await _asentar(tester);
+      expect(find.text('Seguir editando'), findsOneWidget);
+
+      await tester.tap(find.text('Seguir editando'));
+      await _asentar(tester);
+      expect(find.byType(GProseBlock), findsOneWidget,
+          reason: 'seguir editando se queda en el capítulo');
+
+      await tester.tap(find.byTooltip('Atrás'));
+      await _asentar(tester);
+      await tester.tap(find.text('Descartar'));
+      await _asentar(tester);
+      await tester.pump(const Duration(seconds: 1)); // transición de salida
+      expect(find.byType(GProseBlock), findsNothing);
+      expect(find.text('abrir'), findsOneWidget);
     });
 
     testWidgets(
@@ -433,22 +504,16 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
     });
 
-    testWidgets('un bloque editado lleva franja roja y sus chips',
+    testWidgets('un capítulo suelto editado lleva franja roja',
         (tester) async {
       await tester.pumpWidget(
           _app(const GReviewerScreen(reviewId: 'doc'), ApiFalsa(_documento())));
       await _asentar(tester);
 
-      final caja = tester.getRect(find.byType(GProseBlock));
-      await tester.longPressAt(Offset(caja.left + 60, caja.top + 10));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
       await tester.enterText(find.byType(EditableText), 'Capítulo recortado.');
-      await tester.tap(find.text('Guardar'));
+      await tester.pump(); // "Guardar" se activa al haber cambios
+      await tester.tap(find.byTooltip('Guardar'));
       await tester.pump(const Duration(milliseconds: 400));
-
-      expect(find.text('VER ORIGINAL'), findsOneWidget);
-      expect(find.text('RESTAURAR'), findsOneWidget);
 
       final marco = tester.widget<Container>(
         find

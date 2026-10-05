@@ -6,6 +6,16 @@ import '../theme/g_text.dart';
 /// Relleno de la CTA de la barra inferior.
 enum GFootFill { red, ink, off }
 
+/// Botón cuadrado de solo icono a la derecha de la CTA ([GFoot.conIconos]).
+/// Sin [onTap] se pinta deshabilitado.
+class GFootIcono {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onTap;
+
+  const GFootIcono({required this.icon, required this.tooltip, this.onTap});
+}
+
 /// Barra inferior de 64dp, pegada abajo y con borde superior de tinta.
 ///
 /// Tres formas: navegación + CTA ([GFoot.navegada]), una sola CTA
@@ -45,6 +55,21 @@ class GFoot extends StatelessWidget {
   }) {
     return GFoot._([
       Expanded(child: _Main(label: label, fill: fill, onTap: onTap, icon: icon)),
+    ]);
+  }
+
+  /// CTA | icono | icono… — p. ej. Revisar y confirmar con las acciones del
+  /// editor de un capítulo suelto. Los iconos usan la misma celda que ↑/↓.
+  factory GFoot.conIconos({
+    required String label,
+    required GFootFill fill,
+    required VoidCallback? onMain,
+    required List<GFootIcono> iconos,
+  }) {
+    return GFoot._([
+      Expanded(child: _Main(label: label, fill: fill, onTap: onMain)),
+      for (final i in iconos)
+        _Nav(icon: i.icon, tooltip: i.tooltip, onTap: i.onTap, alFinal: true),
     ]);
   }
 
@@ -123,7 +148,8 @@ class _Nav extends StatelessWidget {
                     : BorderSide.none,
               ),
             ),
-            child: Icon(icon, size: 20, color: GColors.ink),
+            child: Icon(icon,
+                size: 20, color: onTap == null ? GColors.grey3 : GColors.ink),
           ),
         ),
       );

@@ -139,6 +139,22 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
     if (ok == true) await s.reset();
   }
 
+  /// Atrás con el campo sin guardar: se avisa antes de perderlo.
+  Future<void> _salirSinGuardar(ReviewSession s) async {
+    final ok = await GDialog.confirmar(
+      context,
+      title: 'Descartar',
+      keyword: 'cambios',
+      message: 'Hay cambios sin guardar en el capítulo. Si sales ahora, se '
+          'perderán.',
+      confirmLabel: 'Descartar',
+      cancelLabel: 'Seguir editando',
+    );
+    if (ok != true || !mounted) return;
+    s.sinGuardar = false;
+    Navigator.of(context).pop();
+  }
+
   void _snack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -185,9 +201,13 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
     final ai = session.loadStatus == LoadStatus.ready ? _aiPara(session) : null;
 
     return PopScope(
-      canPop: true,
+      canPop: !session.sinGuardar,
       // ignore: deprecated_member_use
       onPopInvoked: (didPop) {
+        if (!didPop) {
+          _salirSinGuardar(session);
+          return;
+        }
         if (session.canSave) session.saveNow();
       },
       child: conAsistente(
@@ -195,8 +215,11 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
           appBar: GAppBar(
             title: session.review?.title ?? 'Revisión',
             subtitulo: session.loadStatus == LoadStatus.ready &&
-                    session.saveStatus != SaveStatus.idle
-                ? _EstadoGuardado(status: session.saveStatus)
+                    (session.saveStatus != SaveStatus.idle ||
+                        session.sinGuardar)
+                ? _EstadoGuardado(
+                    status: session.saveStatus,
+                    sinGuardar: session.sinGuardar)
                 : null,
             trailing: [
               if (session.loadStatus == LoadStatus.ready) ...[
@@ -331,6 +354,7 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
           start: p.start,
           end: p.end,
           number: GParagraphs.at(chapter, p.start),
+          siempreEditando: context.read<ReviewSession>().esSuelto,
           onEditing: _cambioEdicion,
           onSeleccionCambia: ai == null ? null : seleccionCambia,
           onSeleccionVacia: ai == null ? null : ocultarPill,
@@ -366,6 +390,9 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
 
   Widget _barra(ReviewSession session) {
     final edicion = _edicion;
+    if (edicion != null && session.esSuelto) {
+      return _barraSuelto(session, edicion);
+    }
     if (edicion != null) {
       return GFoot.partida(
         leftLabel: 'Guardar',
@@ -397,6 +424,38 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
     );
   }
 
+  /// Capítulo suelto, siempre en edición: la CTA de siempre y, pegadas a su
+  /// derecha, Guardar · Deshacer · Cancelar. Guardar y Cancelar solo se
+  /// activan con cambios sin guardar; Deshacer, mientras haya historial.
+  Widget _barraSuelto(ReviewSession session, GProseEditActions edicion) {
+    final sinGuardar = session.sinGuardar;
+    return ValueListenableBuilder<UndoHistoryValue>(
+      valueListenable: edicion.historial,
+      builder: (context, historial, _) => GFoot.conIconos(
+        label: 'Revisar y confirmar',
+        fill: GFootFill.ink,
+        onMain: () => _abrirConfirmacion(session),
+        iconos: [
+          GFootIcono(
+            icon: Icons.save_outlined,
+            tooltip: 'Guardar',
+            onTap: sinGuardar ? edicion.guardar : null,
+          ),
+          GFootIcono(
+            icon: Icons.undo,
+            tooltip: 'Deshacer',
+            onTap: historial.canUndo ? edicion.historial.undo : null,
+          ),
+          GFootIcono(
+            icon: Icons.close,
+            tooltip: 'Descartar cambios',
+            onTap: sinGuardar ? edicion.cancelar : null,
+          ),
+        ],
+      ),
+    );
+  }
+
   void _abrirConfirmacion(ReviewSession s) => _abrir(GConfirmScreen(
         title: s.review!.title,
         text: s.currentText(),
@@ -404,13 +463,16 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
       ));
 }
 
-/// Estado del autoguardado en mono, a la derecha de la barra superior.
+/// Estado del guardado en mono, bajo el título. Un borrador sin guardar manda
+/// sobre todo lo demás y va en el acento, para que no pase desapercibido.
 class _EstadoGuardado extends StatelessWidget {
   final SaveStatus status;
-  const _EstadoGuardado({required this.status});
+  final bool sinGuardar;
+  const _EstadoGuardado({required this.status, this.sinGuardar = false});
 
   @override
   Widget build(BuildContext context) {
+    if (sinGuardar) return const GMono.red('● Cambios sin guardar');
     final (String texto, Color color) = switch (status) {
       SaveStatus.idle => ('', GColors.grey2),
       SaveStatus.pending => ('○ Sin guardar', GColors.grey2),
