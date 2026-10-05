@@ -116,6 +116,7 @@ class _GLibroScreenState extends State<GLibroScreen> {
   GHero _hero(int numero) => GHero(
         titulo: widget.libro.title,
         subtitulo: '$numero ${numero == 1 ? 'capítulo' : 'capítulos'}',
+        meta: 'Libro',
         onVolver: () => Navigator.of(context).maybePop(),
         logo: false,
       );
@@ -137,7 +138,7 @@ class _GLibroScreenState extends State<GLibroScreen> {
         numero: c.numero,
         titulo: c.titulo,
         meta: _meta(c),
-        debajo: c.revisiones > 1
+        debajo: c.revisiones > 0
             ? GMeter(total: c.revisiones, done: c.listas)
             : null,
         derecha: GStamp(
@@ -154,9 +155,9 @@ class _GLibroScreenState extends State<GLibroScreen> {
         boton: 'Nuevo capítulo',
         onBoton: _nuevoCapitulo,
       ),
-      fabLabel: 'Capítulo',
-      fabIcon: Icons.add,
-      onFab: _nuevoCapitulo,
+      pieLabel: 'Nuevo capítulo',
+      pieIcon: Icons.add,
+      onPie: _nuevoCapitulo,
     );
   }
 }

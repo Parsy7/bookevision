@@ -459,7 +459,7 @@ class _GProseBlockState extends State<GProseBlock> {
               ? BoxDecoration(
                   border: Border(
                     left:
-                        BorderSide(color: GColors.red, width: GSpacing.stripe),
+                        BorderSide(color: GColors.accent, width: GSpacing.stripe),
                   ),
                 )
               : null,
@@ -569,7 +569,7 @@ class _GProseBlockState extends State<GProseBlock> {
         GChip('Ver modificado',
             filled: !_showingOriginal,
             onTap: () => setState(() => _showingOriginal = false)),
-        GChip('Restaurar', color: GColors.red, onTap: _restore),
+        GChip('Restaurar', color: GColors.accent, onTap: _restore),
       ],
     );
   }

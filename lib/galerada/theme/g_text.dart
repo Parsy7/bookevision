@@ -67,10 +67,11 @@ class GText {
   static TextStyle get hero =>
       _serif(size: 64, height: 1.05, letterSpacing: -0.64); // -.01em
 
-  /// Hero de «Mis libros»: el mismo titular a 48 (mismo interlineado y
-  /// espaciado que [hero], como siempre ha sido).
+  /// Hero de un capítulo, cuyo título suele ser largo («XV. El precio del
+  /// silencio»): el mismo titular a 52 (mismo interlineado y espaciado que
+  /// [hero]).
   static TextStyle get heroSm =>
-      _serif(size: 48, height: 1.05, letterSpacing: -0.64);
+      _serif(size: 52, height: 1.05, letterSpacing: -0.64);
 
   /// Título de la barra superior.
   static TextStyle get appBar => _serif(size: 26, height: 1);
@@ -80,7 +81,7 @@ class GText {
 
   /// La palabra clave del título, en rojo y cursiva.
   static TextStyle get cardTitleEm => _serif(
-      size: 28, height: 1.05, color: GColors.red, style: FontStyle.italic);
+      size: 28, height: 1.05, color: GColors.accent, style: FontStyle.italic);
 
   /// Título de una fila de la lista.
   static TextStyle get rowTitle => _serif(size: 22, height: 1.1);

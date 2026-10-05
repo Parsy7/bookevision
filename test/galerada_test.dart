@@ -162,7 +162,7 @@ void main() {
       await _asentar(tester);
 
       expect(find.textContaining('Página en '), findsOneWidget);
-      expect(find.text('Importar revisión'), findsOneWidget);
+      expect(find.text('Nuevo'), findsOneWidget);
       expect(find.text('FORMATO · LA-JAULA-ROTA-REVIEW-V4'), findsOneWidget);
     });
 
@@ -522,7 +522,7 @@ void main() {
             .first,
       );
       final borde = (marco.decoration as BoxDecoration).border! as Border;
-      expect(borde.left.color, GColors.red);
+      expect(borde.left.color, GColors.accent);
       expect(borde.left.width, 3);
 
       await tester.pump(const Duration(seconds: 2));

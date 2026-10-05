@@ -59,12 +59,17 @@ class GColors {
   static Color get ink => _current.ink;
 
   /// Acento del tema: CTA principal, pendiente, tachado.
-  static Color get red => _current.acento;
+  static Color get accent => _current.acento;
 
-  /// Rojo fijo del corrector, sin teñir por el tema: lo irreversible
-  /// (borrar decisiones, un capítulo, una revisión…) tiene que leerse
-  /// siempre como peligro, elija el usuario el tema que elija.
-  static const Color danger = Color(0xFFE4401C);
+  /// El acento como **texto** sobre papel: la palabra destacada de un
+  /// titular («Mis *libros*»). En temas de acento claro es más hondo.
+  static Color get accentText => _current.acentoTexto;
+
+  /// Lo irreversible (borrar decisiones, un capítulo, una revisión…). Cada
+  /// tema trae el suyo, separado del acento: en Clásico es el mismo rojo,
+  /// pero en Marino el acento es dorado y borrar tiene que seguir leyéndose
+  /// como peligro.
+  static Color get danger => _current.peligro;
 
   /// «Escribir yo» y borde del editor.
   static Color get blue => _current.blue;
@@ -86,7 +91,8 @@ class GColors {
 
   // Texto sobre relleno.
   static Color get onInk => _current.onInk;
-  static Color get onRed => _current.onRed;
+  static Color get onRed => _current.sobreAcento;
+  static Color get onDanger => _current.sobrePeligro;
   static Color get onBlue => _current.onBlue;
 
   /// Sobreimpreso de tinta al 6% para el estado pulsado.

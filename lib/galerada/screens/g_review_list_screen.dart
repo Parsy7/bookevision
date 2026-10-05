@@ -153,6 +153,7 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
             ? 'Aún no hay revisiones'
             : '$numero ${numero == 1 ? 'revisión' : 'revisiones'} · ${widget.libro.title}',
         meta: 'Capítulo ${widget.capitulo.numero.toString().padLeft(2, '0')}',
+        compacto: true,
         onVolver: () => Navigator.of(context).maybePop(),
         logo: false,
       );
@@ -166,9 +167,9 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
       fila: (r, i) => _fila(r, i + 1),
       vacia: GListaVacia(
         hero: _hero(0, titulo: 'Página en ', tituloEm: 'blanco'),
-        texto: 'Importa el JSON de una revisión, o un capítulo en .md, '
-            'para empezar a trabajar.',
-        boton: 'Importar revisión',
+        texto: 'Importa el JSON de una revisión o un capítulo en .md, o '
+            'empieza uno en blanco.',
+        boton: 'Nuevo',
         onBoton: _openImport,
         pie: SafeArea(
           top: false,
@@ -183,9 +184,9 @@ class _GReviewListScreenState extends State<GReviewListScreen> {
           ),
         ),
       ),
-      fabLabel: 'Importar',
-      fabIcon: Icons.add,
-      onFab: _openImport,
+      pieLabel: 'Nuevo',
+      pieIcon: Icons.add,
+      onPie: _openImport,
     );
   }
 

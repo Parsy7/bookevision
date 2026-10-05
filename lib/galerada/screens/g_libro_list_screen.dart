@@ -56,9 +56,9 @@ class _GLibroListScreenState extends State<GLibroListScreen> {
   }
 
   GHero _hero(int numero) => GHero(
-        titulo: 'Mis libros',
+        titulo: 'Mis ',
+        tituloEm: 'libros',
         subtitulo: '$numero ${numero == 1 ? 'libro' : 'libros'}',
-        compacto: true,
         accion: 'Mi perfil',
         onAccion: _abrirPerfil,
       );
@@ -84,9 +84,9 @@ class _GLibroListScreenState extends State<GLibroListScreen> {
         boton: 'Nuevo libro',
         onBoton: _nuevoLibro,
       ),
-      fabLabel: 'Nuevo libro',
-      fabIcon: Icons.add,
-      onFab: _nuevoLibro,
+      pieLabel: 'Nuevo libro',
+      pieIcon: Icons.add,
+      onPie: _nuevoLibro,
     );
   }
 }

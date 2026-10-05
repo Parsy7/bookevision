@@ -58,4 +58,20 @@ class ImportMd {
       'suggestions': const <Map<String, dynamic>>[],
     };
   }
+
+  /// Título de un capítulo en blanco cuando no se escribe ninguno.
+  static const String tituloEnBlanco = 'Capítulo en blanco';
+
+  /// Cuerpo del POST para un capítulo **en blanco**: una revisión suelta sin
+  /// texto, que se abre ya en el editor para escribir desde cero.
+  static Map<String, dynamic> enBlanco(String titulo) {
+    final limpio = titulo.trim();
+    return {
+      'format': 'la-jaula-rota-review-v4',
+      'title': _recortar(limpio.isEmpty ? tituloEnBlanco : limpio),
+      'source': 'en blanco',
+      'chapter': '',
+      'suggestions': const <Map<String, dynamic>>[],
+    };
+  }
 }

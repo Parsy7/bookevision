@@ -46,7 +46,7 @@ class GCardTop extends StatelessWidget {
           children: [
             Flexible(child: GMono(left)),
             const SizedBox(width: GSpacing.gapSm),
-            GMono('● $right', color: pending ? GColors.red : GColors.ink),
+            GMono('● $right', color: pending ? GColors.accent : GColors.ink),
           ],
         ),
       );
@@ -113,7 +113,7 @@ class GBlock extends StatelessWidget {
       GBlockKind.strike => GText.block.copyWith(
           color: GColors.strike,
           decoration: TextDecoration.lineThrough,
-          decorationColor: GColors.red,
+          decorationColor: GColors.accent,
           decorationThickness: 1.5,
         ),
       GBlockKind.context => GText.context,
@@ -145,7 +145,7 @@ class GBlock extends StatelessWidget {
           top: -9,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-            color: GColors.red,
+            color: GColors.accent,
             child: GMono(mark!, color: GColors.onRed),
           ),
         ),
@@ -168,7 +168,7 @@ class GSlot extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: GSpacing.gapSm),
             alignment: Alignment.center,
-            child: GMono(label, color: GColors.red),
+            child: GMono(label, color: GColors.accent),
           ),
         ),
       );
@@ -180,7 +180,7 @@ class _Discontinuo extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final pincel = Paint()
-      ..color = GColors.red
+      ..color = GColors.accent
       ..style = PaintingStyle.stroke
       ..strokeWidth = GSpacing.border;
 
@@ -270,7 +270,7 @@ class GWarn extends StatelessWidget {
         padding: const EdgeInsets.symmetric(
             horizontal: GSpacing.card, vertical: GSpacing.blockV),
         decoration: BoxDecoration(
-          color: GColors.red,
+          color: GColors.accent,
           border: Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
         ),
         child: Text(text, style: GText.block.copyWith(color: GColors.onRed)),

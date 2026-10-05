@@ -41,7 +41,7 @@ class GDialog {
                       BorderSide(color: GColors.ink, width: GSpacing.border),
                 ),
               ),
-              child: const GMono('Acción irreversible', color: GColors.danger),
+              child: GMono('Acción irreversible', color: GColors.danger),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(

@@ -62,9 +62,24 @@ void main() {
       expect(r['chapter'], _md,
           reason: 'el contenido entra tal cual, encabezado incluido');
     });
+
+    test('un capítulo en blanco entra vacío, con título o sin él', () {
+      final r = ImportMd.enBlanco('  Capítulo 8 ');
+      expect(r['title'], 'Capítulo 8');
+      expect(r['chapter'], '');
+      expect(r['suggestions'], isEmpty);
+      expect(ImportMd.enBlanco('')['title'], ImportMd.tituloEnBlanco);
+    });
   });
 
   group('lector de un capítulo suelto', () {
+    test('un capítulo en blanco también tiene su bloque, para escribir', () {
+      final p = buildReaderPieces(_documento('')).single as ProsePiece;
+      expect(p.text, isEmpty);
+      expect(p.start, 0);
+      expect(p.end, 0);
+    });
+
     test('un solo bloque con el capítulo entero', () {
       final piezas = buildReaderPieces(_documento());
 

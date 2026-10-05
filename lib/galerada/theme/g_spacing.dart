@@ -29,9 +29,6 @@ class GSpacing {
   /// Alto de la barra inferior.
   static const double foot = 64;
 
-  /// Alto del botón flotante de la lista.
-  static const double fab = 56;
-
   /// Sangrado de la prosa, donde va el número de párrafo.
   static const double proseIndent = 30;
 

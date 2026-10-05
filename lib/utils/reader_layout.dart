@@ -47,8 +47,10 @@ class CardPiece extends ReaderPiece {
 /// El precio es que el campo de edición carga el capítulo entero: teclear
 /// carácter a carácter va notablemente más lento que en un bloque pequeño
 /// (borrar una selección, que es una sola operación, no).
+///
+/// Un capítulo vacío (creado «en blanco») también lleva su bloque: es el
+/// campo donde se empieza a escribir.
 List<ReaderPiece> _soloProsa(String chapter) {
-  if (chapter.isEmpty) return const [];
   return [ProsePiece(chapter, 0, chapter.length)];
 }
 

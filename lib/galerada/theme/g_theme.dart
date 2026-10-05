@@ -15,8 +15,8 @@ ThemeData buildGaleradaTheme() => ThemeData(
   colorScheme: ColorScheme.light(
     surface: GColors.sheet,
     primary: GColors.ink,
-    secondary: GColors.red,
-    error: GColors.red,
+    secondary: GColors.accent,
+    error: GColors.accent,
     onError: GColors.onRed,
     onPrimary: GColors.onInk,
     onSurface: GColors.ink,

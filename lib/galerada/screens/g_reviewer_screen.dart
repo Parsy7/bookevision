@@ -397,7 +397,7 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
       return GFoot.partida(
         leftLabel: 'Guardar',
         rightLabel: 'Cancelar',
-        leftFill: GFootFill.ink,
+        leftFill: GFootFill.red,
         rightFill: GFootFill.off,
         onLeft: edicion.guardar,
         onRight: edicion.cancelar,
@@ -409,7 +409,7 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
     if (c.total == 0) {
       return GFoot.unica(
         label: 'Revisar y confirmar',
-        fill: GFootFill.ink,
+        fill: GFootFill.red,
         onTap: () => _abrirConfirmacion(session),
       );
     }
@@ -433,13 +433,14 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
       valueListenable: edicion.historial,
       builder: (context, historial, _) => GFoot.conIconos(
         label: 'Revisar y confirmar',
-        fill: GFootFill.ink,
+        fill: GFootFill.red,
         onMain: () => _abrirConfirmacion(session),
         iconos: [
           GFootIcono(
             icon: Icons.save_outlined,
             tooltip: 'Guardar',
             onTap: sinGuardar ? edicion.guardar : null,
+            acento: true,
           ),
           GFootIcono(
             icon: Icons.undo,
@@ -478,7 +479,7 @@ class _EstadoGuardado extends StatelessWidget {
       SaveStatus.pending => ('○ Sin guardar', GColors.grey2),
       SaveStatus.saving => ('↻ Guardando…', GColors.grey2),
       SaveStatus.saved => ('✓ Guardado', GColors.grey2),
-      SaveStatus.error => ('✕ Error', GColors.red),
+      SaveStatus.error => ('✕ Error', GColors.accent),
     };
     if (texto.isEmpty) return const SizedBox.shrink();
     return GMono(texto, color: color);

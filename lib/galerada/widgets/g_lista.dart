@@ -5,21 +5,22 @@ import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
 import 'g_bits.dart';
 import 'g_button.dart';
+import 'g_foot.dart';
 
 /// Cabecera de una portada (Mis libros, un libro, un capítulo): marca en
 /// mono, titular grande, subtítulo en cursiva y una raya de tinta debajo.
 class GHero extends StatelessWidget {
   final String titulo;
 
-  /// Segunda parte del titular, en rojo (el juego de «Página en blanco»).
+  /// Segunda parte del titular, en cursiva y con el acento de texto (el
+  /// juego de «Página en blanco», «Mis *libros*»).
   final String? tituloEm;
   final String subtitulo;
 
   /// Titular un punto más pequeño ([GText.heroSm]).
   final bool compacto;
 
-  /// Con esto, «Volver» a la izquierda de la marca, con la misma flecha
-  /// que el botón de atrás de [GAppBar].
+  /// Con esto, el mismo botón de atrás de [GAppBar] a la izquierda.
   final VoidCallback? onVolver;
 
   final bool? logo;
@@ -67,26 +68,26 @@ class GHero extends StatelessWidget {
               Row(
                 children: [
                   if (onVolver != null) ...[
-                    GestureDetector(
-                      onTap: onVolver,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.arrow_back,
-                              size: 14, color: GColors.grey2),
-                          const SizedBox(width: GSpacing.gapXs),
-                          const GMono.muted('Volver'),
-                        ],
-                      ),
+                    GIconButton(
+                      icon: Icons.arrow_back,
+                      tooltip: 'Volver',
+                      outlined: true,
+                      onPressed: onVolver,
                     ),
                     const SizedBox(width: GSpacing.gap),
                   ],
                   if (logo == true) ...[
-                    Image.asset(
-                      GMarca.logo,
-                      width: GSpacing.logoMarca,
-                      height: GSpacing.logoMarca,
-                      excludeFromSemantics: true,
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                            color: GColors.ink, width: GSpacing.border),
+                      ),
+                      child: Image.asset(
+                        GMarca.logo,
+                        width: GSpacing.logoMarca,
+                        height: GSpacing.logoMarca,
+                        excludeFromSemantics: true,
+                      ),
                     ),
                     const SizedBox(width: GSpacing.gapSm),
                     const GMono('bookevision'),
@@ -94,7 +95,7 @@ class GHero extends StatelessWidget {
                 ],
               ),
               if (accion != null && onAccion != null)
-                GestureDetector(onTap: onAccion, child: GMono.muted(accion!))
+                _BotonAccion(label: accion!, onTap: onAccion)
               else if (meta != null)
                 GMono.muted(meta),
             ],
@@ -108,7 +109,9 @@ class GHero extends StatelessWidget {
                 if (tituloEm != null)
                   TextSpan(
                       text: tituloEm,
-                      style: estilo.copyWith(color: GColors.red)),
+                      style: estilo.copyWith(
+                          color: GColors.accentText,
+                          fontStyle: FontStyle.italic)),
               ],
             ),
           ),
@@ -118,6 +121,29 @@ class GHero extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Enlace de la cabecera («Mi perfil»): mono en mayúsculas dentro de una
+/// caja de tinta, a la altura del logo.
+class _BotonAccion extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _BotonAccion({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        child: Container(
+          height: GSpacing.iconBtn,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            border: Border.all(color: GColors.ink, width: GSpacing.border),
+          ),
+          child: GMono(label),
+        ),
+      );
 }
 
 /// Fila de una portada: número grande (opcional) | título, metadatos en mono
@@ -208,10 +234,10 @@ class GFila extends StatelessWidget {
         return false; // el borrado lo confirma el diálogo, no el gesto
       },
       background: Container(
-        color: GColors.red,
+        color: GColors.danger,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: GSpacing.page),
-        child: GMono('Borrar', color: GColors.onRed),
+        child: GMono('Borrar', color: GColors.onDanger),
       ),
       child: fila,
     );
@@ -219,17 +245,17 @@ class GFila extends StatelessWidget {
 }
 
 /// Portada con lista: espera a [future], y pinta el error, el estado vacío
-/// ([vacia]) o la lista con su [hero] arriba, tirar para recargar y el botón
-/// flotante abajo a la derecha.
+/// ([vacia]) o la lista con su [hero] arriba, tirar para recargar y la barra
+/// inferior con la acción principal, en el acento.
 class GPantallaLista<T> extends StatelessWidget {
   final Future<List<T>> future;
   final Future<void> Function() onRefresh;
   final Widget Function(List<T> items) hero;
   final Widget Function(T item, int indice) fila;
   final Widget vacia;
-  final String fabLabel;
-  final IconData fabIcon;
-  final VoidCallback onFab;
+  final String pieLabel;
+  final IconData pieIcon;
+  final VoidCallback onPie;
 
   const GPantallaLista({
     super.key,
@@ -238,9 +264,9 @@ class GPantallaLista<T> extends StatelessWidget {
     required this.hero,
     required this.fila,
     required this.vacia,
-    required this.fabLabel,
-    required this.fabIcon,
-    required this.onFab,
+    required this.pieLabel,
+    required this.pieIcon,
+    required this.onPie,
   });
 
   @override
@@ -260,27 +286,27 @@ class GPantallaLista<T> extends StatelessWidget {
             final items = snap.data ?? const [];
             if (items.isEmpty) return vacia;
 
-            return Stack(
+            return Column(
               children: [
-                RefreshIndicator(
-                  color: GColors.ink,
-                  backgroundColor: GColors.sheet,
-                  onRefresh: onRefresh,
-                  child: ListView.builder(
-                    padding: EdgeInsets.only(
-                      bottom: GSpacing.fab +
-                          GSpacing.page * 2 +
-                          MediaQuery.paddingOf(context).bottom,
+                Expanded(
+                  child: RefreshIndicator(
+                    color: GColors.ink,
+                    backgroundColor: GColors.sheet,
+                    onRefresh: onRefresh,
+                    child: ListView.builder(
+                      itemCount: items.length + 1,
+                      itemBuilder: (_, i) =>
+                          i == 0 ? hero(items) : fila(items[i - 1], i - 1),
                     ),
-                    itemCount: items.length + 1,
-                    itemBuilder: (_, i) =>
-                        i == 0 ? hero(items) : fila(items[i - 1], i - 1),
                   ),
                 ),
-                Positioned(
-                  right: GSpacing.page,
-                  bottom: GSpacing.page + MediaQuery.paddingOf(context).bottom,
-                  child: GFab(label: fabLabel, icon: fabIcon, onPressed: onFab),
+                // La barra reserva ella misma el hueco de la barra de
+                // navegación del sistema.
+                GFoot.unica(
+                  label: pieLabel,
+                  icon: pieIcon,
+                  fill: GFootFill.red,
+                  onTap: onPie,
                 ),
               ],
             );

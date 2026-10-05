@@ -18,7 +18,8 @@ class TemaController {
         $pdo = get_pdo();
         $stmt = $pdo->query(
             'SELECT id, nombre, paper, sheet, white, ink, acento, blue,
-                    grey1, grey2, grey3, strike
+                    grey1, grey2, grey3, strike,
+                    acento_texto, peligro, sobre_acento
              FROM temas
              ORDER BY orden ASC'
         );

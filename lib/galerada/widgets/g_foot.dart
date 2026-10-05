@@ -7,13 +7,20 @@ import '../theme/g_text.dart';
 enum GFootFill { red, ink, off }
 
 /// Botón cuadrado de solo icono a la derecha de la CTA ([GFoot.conIconos]).
-/// Sin [onTap] se pinta deshabilitado.
+/// Sin [onTap] se pinta deshabilitado. Con [acento], activo va relleno del
+/// acento del tema, como la CTA de Guardar.
 class GFootIcono {
   final IconData icon;
   final String tooltip;
   final VoidCallback? onTap;
+  final bool acento;
 
-  const GFootIcono({required this.icon, required this.tooltip, this.onTap});
+  const GFootIcono({
+    required this.icon,
+    required this.tooltip,
+    this.onTap,
+    this.acento = false,
+  });
 }
 
 /// Barra inferior de 64dp, pegada abajo y con borde superior de tinta.
@@ -54,7 +61,8 @@ class GFoot extends StatelessWidget {
     IconData? icon,
   }) {
     return GFoot._([
-      Expanded(child: _Main(label: label, fill: fill, onTap: onTap, icon: icon)),
+      Expanded(
+          child: _Main(label: label, fill: fill, onTap: onTap, icon: icon)),
     ]);
   }
 
@@ -69,7 +77,13 @@ class GFoot extends StatelessWidget {
     return GFoot._([
       Expanded(child: _Main(label: label, fill: fill, onTap: onMain)),
       for (final i in iconos)
-        _Nav(icon: i.icon, tooltip: i.tooltip, onTap: i.onTap, alFinal: true),
+        _Nav(
+          icon: i.icon,
+          tooltip: i.tooltip,
+          onTap: i.onTap,
+          alFinal: true,
+          acento: i.acento,
+        ),
     ]);
   }
 
@@ -84,7 +98,8 @@ class GFoot extends StatelessWidget {
   }) {
     return GFoot._([
       Expanded(
-        child: _Main(label: leftLabel, fill: leftFill, onTap: onLeft, conBorde: true),
+        child: _Main(
+            label: leftLabel, fill: leftFill, onTap: onLeft, conBorde: true),
       ),
       Expanded(
         child: _Main(label: rightLabel, fill: rightFill, onTap: onRight),
@@ -97,7 +112,8 @@ class GFoot extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: GColors.paper,
-        border: Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
+        border:
+            Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
       ),
       child: SafeArea(
         top: false,
@@ -124,12 +140,18 @@ class _Nav extends StatelessWidget {
   final VoidCallback? onTap;
   final bool alFinal;
 
+  /// Activo, relleno del acento (ver [GFootIcono.acento]).
+  final bool acento;
+
   const _Nav({
     required this.icon,
     required this.tooltip,
     required this.onTap,
     this.alFinal = false,
+    this.acento = false,
   });
+
+  bool get _relleno => acento && onTap != null;
 
   @override
   Widget build(BuildContext context) => Tooltip(
@@ -139,6 +161,7 @@ class _Nav extends StatelessWidget {
           child: Container(
             width: GSpacing.foot,
             decoration: BoxDecoration(
+              color: _relleno ? GColors.accent : null,
               border: Border(
                 right: alFinal
                     ? BorderSide.none
@@ -149,7 +172,10 @@ class _Nav extends StatelessWidget {
               ),
             ),
             child: Icon(icon,
-                size: 20, color: onTap == null ? GColors.grey3 : GColors.ink),
+                size: 20,
+                color: onTap == null
+                    ? GColors.grey3
+                    : (_relleno ? GColors.onRed : GColors.ink)),
           ),
         ),
       );
@@ -173,7 +199,7 @@ class _Main extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (Color? fondo, Color texto) = switch (fill) {
-      GFootFill.red => (GColors.red, GColors.onRed),
+      GFootFill.red => (GColors.accent, GColors.onRed),
       GFootFill.ink => (GColors.ink, GColors.onInk),
       GFootFill.off => (null, GColors.grey3),
     };

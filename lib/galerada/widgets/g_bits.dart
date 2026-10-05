@@ -34,7 +34,7 @@ class GMono extends StatelessWidget {
         switch (_variant) {
           _GMonoVariant.normal => GColors.ink,
           _GMonoVariant.muted => GColors.grey2,
-          _GMonoVariant.red => GColors.red,
+          _GMonoVariant.red => GColors.accent,
         };
     return Text(
       label.toUpperCase(),

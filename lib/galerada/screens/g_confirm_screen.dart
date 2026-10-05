@@ -4,7 +4,7 @@ import '../../utils/export_md.dart';
 import '../theme/g_colors.dart';
 import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
-import '../widgets/g_app_bar.dart';
+import '../widgets/g_button.dart';
 import '../widgets/g_bits.dart';
 import '../widgets/g_foot.dart';
 import '../widgets/g_prose.dart';
@@ -27,9 +27,9 @@ class GConfirmScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const GAppBar(title: 'Tu capítulo quedará así'),
       body: Column(
         children: [
+          const _Cabecera(),
           if (counts.total > 0) ...[
             _Recuento(
               n: counts.accepted,
@@ -119,7 +119,9 @@ class _Recuento extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
+        color: GColors.sheet,
+        border: Border(
+            bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,11 +129,12 @@ class _Recuento extends StatelessWidget {
           SizedBox(
             width: 56,
             child: Padding(
-              padding: const EdgeInsets.only(left: GSpacing.page, top: GSpacing.card),
+              padding: const EdgeInsets.only(
+                  left: GSpacing.page, top: GSpacing.card),
               child: Text(
                 '$n',
                 style: GText.bigNumber
-                    .copyWith(color: rojo ? GColors.red : GColors.ink),
+                    .copyWith(color: rojo ? GColors.accentText : GColors.ink),
               ),
             ),
           ),
@@ -150,6 +153,55 @@ class _Recuento extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Atrás y, debajo, «Tu capítulo quedará *así*» a tamaño de tarjeta. Va en
+/// el cuerpo y no como `appBar`, para medir lo que necesite el titular; por
+/// eso se reserva ella misma el hueco de la barra de estado.
+class _Cabecera extends StatelessWidget {
+  const _Cabecera();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: GColors.paper,
+      child: SafeArea(
+        bottom: false,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(GSpacing.page, GSpacing.barBottom,
+              GSpacing.page, GSpacing.barBottom),
+          decoration: BoxDecoration(
+            border: Border(
+                bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: GSpacing.card,
+            children: [
+              GIconButton(
+                icon: Icons.arrow_back,
+                tooltip: 'Atrás',
+                outlined: true,
+                onPressed: () => Navigator.of(context).maybePop(),
+              ),
+              Text.rich(TextSpan(
+                style: GText.cardTitle,
+                children: [
+                  const TextSpan(text: 'Tu capítulo quedará '),
+                  TextSpan(
+                    text: 'así',
+                    style: GText.cardTitle.copyWith(
+                        color: GColors.accentText, fontStyle: FontStyle.italic),
+                  ),
+                ],
+              )),
+            ],
+          ),
+        ),
       ),
     );
   }

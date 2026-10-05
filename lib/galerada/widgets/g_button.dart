@@ -30,7 +30,7 @@ class GButton extends StatelessWidget {
     final habilitado = onPressed != null;
     final (Color? fondo, Color texto, Color borde) = switch (fill) {
       GFill.ink => (GColors.ink, GColors.onInk, GColors.ink),
-      GFill.red => (GColors.red, GColors.onRed, GColors.red),
+      GFill.red => (GColors.accent, GColors.onRed, GColors.accent),
       GFill.outline => (null, GColors.ink, GColors.ink),
     };
 
@@ -109,40 +109,6 @@ class GIconButton extends StatelessWidget {
             size: 20,
             color: outlined ? tinta : GColors.onInk,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Botón flotante de la lista. Sin radio, como todo lo demás.
-class GFab extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  const GFab({
-    super.key,
-    required this.label,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onPressed,
-      child: Container(
-        height: GSpacing.fab,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        color: GColors.ink,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 20, color: GColors.onInk),
-            const SizedBox(width: 10),
-            Text(label, style: GText.button.copyWith(color: GColors.onInk)),
-          ],
         ),
       ),
     );

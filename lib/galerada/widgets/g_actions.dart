@@ -47,7 +47,10 @@ class GActions extends StatelessWidget {
     // Se reparten en filas de dos, salvo las que ocupan el ancho entero.
     final filas = <List<GAction>>[];
     for (final a in actions) {
-      if (a.full || filas.isEmpty || filas.last.length == 2 || filas.last.first.full) {
+      if (a.full ||
+          filas.isEmpty ||
+          filas.last.length == 2 ||
+          filas.last.first.full) {
         filas.add([a]);
       } else {
         filas.last.add(a);
@@ -56,7 +59,8 @@ class GActions extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
+        border:
+            Border(top: BorderSide(color: GColors.ink, width: GSpacing.border)),
       ),
       child: Column(
         children: [
@@ -94,11 +98,16 @@ class _Boton extends StatelessWidget {
   Widget build(BuildContext context) {
     final tono = switch (accion.tone) {
       GTone.ink => GColors.ink,
-      GTone.red => GColors.red,
+      GTone.red => GColors.accent,
       GTone.blue => GColors.blue,
       GTone.danger => GColors.danger,
     };
-    final sobre = accion.tone == GTone.ink ? GColors.onInk : GColors.onRed;
+    final sobre = switch (accion.tone) {
+      GTone.ink => GColors.onInk,
+      GTone.red => GColors.onRed,
+      GTone.blue => GColors.onBlue,
+      GTone.danger => GColors.onDanger,
+    };
     final color = accion.active ? sobre : tono;
 
     return InkWell(

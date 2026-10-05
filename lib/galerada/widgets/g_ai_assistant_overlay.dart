@@ -186,7 +186,7 @@ class _Burbuja extends StatelessWidget {
                   height: GSpacing.aiBadge,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: GColors.red,
+                    color: GColors.accent,
                     border: Border.all(
                         color: GColors.paper, width: GSpacing.aiBadgeRing),
                   ),
@@ -540,7 +540,7 @@ class _Mensaje extends StatelessWidget {
                     child: SelectionArea(
                       child: GAiMarkdown(
                         mensaje.texto,
-                        color: mensaje.esError ? GColors.red : null,
+                        color: mensaje.esError ? GColors.accent : null,
                       ),
                     ),
                   ),
@@ -572,7 +572,7 @@ class _Mensaje extends StatelessWidget {
               GChip(
                 convirtiendo ? 'Convirtiendo…' : 'Usar como sugerencia',
                 onTap: convirtiendo ? null : onConvertir,
-                color: GColors.red,
+                color: GColors.accent,
                 onColor: GColors.onRed,
                 filled: true,
               ),
