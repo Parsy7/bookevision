@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/libro.dart';
 import '../../services/api_service.dart';
+import '../escritorio/g_escritorio.dart';
+import '../escritorio/g_escritorio_screen.dart';
 import '../theme/g_colors.dart';
 import '../widgets/g_lista.dart';
 import 'g_create_libro_screen.dart';
@@ -44,10 +46,16 @@ class _GLibroListScreenState extends State<GLibroListScreen> {
     if (libro != null) _abrirLibro(libro);
   }
 
+  /// En Windows o en una tablet grande el libro se abre en el editor de tres
+  /// columnas; en el móvil, en su lista de capítulos de siempre.
   void _abrirLibro(Libro libro) {
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => GLibroScreen(libro: libro)))
-        .then((_) => _refresh());
+    final abierto = GEscritorio.esEscritorio(context)
+        ? GEscritorio.abrir<void>(context, GEscritorioScreen(libro: libro))
+        : Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => GLibroScreen(libro: libro)));
+    abierto.then((_) {
+      if (mounted) _refresh();
+    });
   }
 
   void _abrirPerfil() {

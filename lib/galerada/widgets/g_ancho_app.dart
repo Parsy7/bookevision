@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../escritorio/g_escritorio.dart';
 import '../theme/g_colors.dart';
 import '../theme/g_spacing.dart';
 
@@ -16,8 +17,30 @@ class GAnchoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Con una pantalla de escritorio abierta no hay columna: ocupa la ventana.
+    // El `child` es el Navigator, que lleva su propia GlobalKey, así que
+    // pasar de una forma a otra no le quita las rutas.
+    return ValueListenableBuilder<int>(
+      valueListenable: GEscritorio.abiertas,
+      builder: (context, abiertas, _) =>
+          abiertas > 0 ? child : GColumna(child: child),
+    );
+  }
+}
+
+/// La columna centrada de [GSpacing.anchoApp] de la app móvil en una ventana
+/// ancha. Las pantallas del móvil que se abren **desde** el escritorio (la
+/// vista previa, el perfil…) se envuelven en una para no estirarse.
+class GColumna extends StatelessWidget {
+  final Widget child;
+
+  const GColumna({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      if (constraints.maxWidth <= GSpacing.anchoApp + 2 * GSpacing.border) return child;
+      if (constraints.maxWidth <= GSpacing.anchoApp + 2 * GSpacing.border)
+        return child;
       final mq = MediaQuery.of(context);
       return ColoredBox(
         color: GColors.paper,
@@ -27,7 +50,8 @@ class GAnchoApp extends StatelessWidget {
             // El borde ya reserva su hueco dentro: la app mide anchoApp.
             decoration: BoxDecoration(
               border: Border.symmetric(
-                vertical: BorderSide(color: GColors.ink, width: GSpacing.border),
+                vertical:
+                    BorderSide(color: GColors.ink, width: GSpacing.border),
               ),
             ),
             child: MediaQuery(

@@ -1,22 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../models/review.dart';
 import '../../services/api_service.dart';
 import '../../services/g_ai_assistant_controller.dart';
 import '../../services/review_session.dart';
 import '../../utils/export_md.dart';
-import '../../utils/reader_layout.dart';
 import '../theme/g_colors.dart';
 import '../theme/g_spacing.dart';
 import '../theme/g_text.dart';
 import '../widgets/g_ai_assistant_overlay.dart';
 import '../widgets/g_app_bar.dart';
-import '../widgets/g_bits.dart';
 import '../widgets/g_dialog.dart';
-import '../widgets/g_foot.dart';
-import '../widgets/g_paragraphs.dart';
+import '../widgets/g_lector.dart';
 import '../widgets/g_prose.dart';
-import '../widgets/g_suggestion_card.dart';
 import 'g_confirm_screen.dart';
 import 'g_original_screen.dart';
 import 'g_preview_screen.dart';
@@ -46,10 +41,7 @@ class _Vista extends StatefulWidget {
 }
 
 class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
-  List<ReaderPiece>? _pieces;
-  String? _piecesForId;
-  final Map<int, GlobalKey> _cardKeys = {};
-  int _lastFocused = -1;
+  final _navegador = GLectorNavegador();
   GProseEditActions? _edicion;
   bool _generandoIA = false;
   GAiAssistantController? _asistente;
@@ -75,57 +67,6 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
     )..mode = GAiAssistantMode.bubble;
     _asistente = nuevo;
     return nuevo;
-  }
-
-  void _ensurePieces(Review r) {
-    if (_piecesForId == r.id && _pieces != null) return;
-    _pieces = buildReaderPieces(r);
-    _piecesForId = r.id;
-    _cardKeys.clear();
-    for (final p in _pieces!) {
-      if (p is CardPiece) _cardKeys[p.index] = GlobalKey();
-    }
-  }
-
-  /// Solo un bloque en edición a la vez: empezar otro cancela el anterior. El
-  /// aviso de salida del anterior llega después del de entrada del nuevo, por
-  /// eso se compara la identidad.
-  void _cambioEdicion(GProseEditActions acciones, {required bool activa}) {
-    if (activa) {
-      final anterior = _edicion;
-      setState(() => _edicion = acciones);
-      if (anterior != null) anterior.cancelar();
-    } else if (identical(_edicion, acciones)) {
-      setState(() => _edicion = null);
-    }
-  }
-
-  List<int> _pendientes(ReviewSession s) => [
-        for (var i = 0; i < s.suggestions.length; i++)
-          if (!s.isResolved(i)) i
-      ];
-
-  void _saltarA(int index) {
-    _lastFocused = index;
-    final ctx = _cardKeys[index]?.currentContext;
-    if (ctx != null) {
-      Scrollable.ensureVisible(ctx,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-          alignment: 0.1);
-    }
-  }
-
-  void _siguiente(ReviewSession s) {
-    final p = _pendientes(s);
-    if (p.isEmpty) return;
-    _saltarA(p.firstWhere((i) => i > _lastFocused, orElse: () => p.first));
-  }
-
-  void _anterior(ReviewSession s) {
-    final p = _pendientes(s);
-    if (p.isEmpty) return;
-    _saltarA(p.lastWhere((i) => i < _lastFocused, orElse: () => p.last));
   }
 
   Future<void> _reset(ReviewSession s) async {
@@ -217,9 +158,8 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
             subtitulo: session.loadStatus == LoadStatus.ready &&
                     (session.saveStatus != SaveStatus.idle ||
                         session.sinGuardar)
-                ? _EstadoGuardado(
-                    status: session.saveStatus,
-                    sinGuardar: session.sinGuardar)
+                ? GEstadoGuardado(
+                    status: session.saveStatus, sinGuardar: session.sinGuardar)
                 : null,
             trailing: [
               if (session.loadStatus == LoadStatus.ready) ...[
@@ -286,9 +226,15 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
               ],
             ],
           ),
-          body: _cuerpo(session, ai),
-          bottomNavigationBar:
-              session.loadStatus == LoadStatus.ready ? _barra(session) : null,
+          body: _cuerpo(ai),
+          bottomNavigationBar: session.loadStatus == LoadStatus.ready
+              ? GLectorBarra(
+                  session: session,
+                  navegador: _navegador,
+                  edicion: _edicion,
+                  onConfirmar: () => _abrirConfirmacion(session),
+                )
+              : null,
         ),
         ai,
         extraBottomOffset: GSpacing.foot,
@@ -296,164 +242,12 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
     );
   }
 
-  Widget _cuerpo(ReviewSession session, GAiAssistantController? ai) {
-    switch (session.loadStatus) {
-      case LoadStatus.idle:
-      case LoadStatus.loading:
-        return Center(child: CircularProgressIndicator(color: GColors.ink));
-      case LoadStatus.error:
-        return Padding(
-          padding: const EdgeInsets.all(GSpacing.page),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const GMono.red('✕ No se pudo abrir la revisión'),
-                const SizedBox(height: GSpacing.gapSm),
-                Text('${session.lastError}',
-                    style: GText.reason, textAlign: TextAlign.center),
-              ],
-            ),
-          ),
-        );
-      case LoadStatus.ready:
-        _ensurePieces(session.review!);
-        final c = session.counts();
-        final chapter = session.review!.chapter;
-        return Column(
-          children: [
-            if (c.total > 0) _Progreso(done: c.done, total: c.total),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(GSpacing.page),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (var i = 0; i < _pieces!.length; i++) ...[
-                      if (i > 0) const SizedBox(height: GSpacing.gap),
-                      _pieza(_pieces![i], chapter, ai),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ],
-        );
-    }
-  }
-
-  /// En «Galerada» el original tachado y el contexto de una inserción viven
-  /// **dentro** de la tarjeta, así que el fragmento afectado y el marcador de
-  /// inserción del lector anterior ya no se pintan sueltos.
-  Widget _pieza(ReaderPiece p, String chapter, GAiAssistantController? ai) {
-    switch (p) {
-      case ProsePiece():
-        return GProseBlock(
-          key: ValueKey(p.blockId),
-          text: p.text,
-          start: p.start,
-          end: p.end,
-          number: GParagraphs.at(chapter, p.start),
-          siempreEditando: context.read<ReviewSession>().esSuelto,
-          onEditing: _cambioEdicion,
-          onSeleccionCambia: ai == null ? null : seleccionCambia,
-          onSeleccionVacia: ai == null ? null : ocultarPill,
-        );
-      case AffectedPiece():
-      case InsertMarkerPiece():
-        return const SizedBox.shrink();
-      case CardPiece():
-        final s = context.read<ReviewSession>().suggestionAt(p.index);
-        final inicio = s.isReplace
-            ? chapter.indexOf(s.original ?? '')
-            : chapter.indexOf(s.anchor ?? '');
-        final etiqueta = s.isReplace
-            ? GParagraphs.label(chapter, inicio < 0 ? 0 : inicio)
-            : GParagraphs.label(
-                chapter,
-                inicio < 0 ? 0 : inicio,
-                end: (inicio < 0 ? 0 : inicio) + (s.anchor ?? '').length + 2,
-              );
-        return Container(
-          key: _cardKeys[p.index],
-          child: GSuggestionCard(
-            index: p.index,
-            paragraphs: etiqueta,
-            // Lo escrito a mano no existe en el original: no se puede anclar.
-            onSeleccionCambia:
-                ai == null ? null : (s) => seleccionCambia(s, anclable: false),
-            onSeleccionVacia: ai == null ? null : ocultarPill,
-          ),
-        );
-    }
-  }
-
-  Widget _barra(ReviewSession session) {
-    final edicion = _edicion;
-    if (edicion != null && session.esSuelto) {
-      return _barraSuelto(session, edicion);
-    }
-    if (edicion != null) {
-      return GFoot.partida(
-        leftLabel: 'Guardar',
-        rightLabel: 'Cancelar',
-        leftFill: GFootFill.red,
-        rightFill: GFootFill.off,
-        onLeft: edicion.guardar,
-        onRight: edicion.cancelar,
-      );
-    }
-
-    final c = session.counts();
-    final todo = session.allResolved;
-    if (c.total == 0) {
-      return GFoot.unica(
-        label: 'Revisar y confirmar',
-        fill: GFootFill.red,
-        onTap: () => _abrirConfirmacion(session),
-      );
-    }
-    return GFoot.navegada(
-      label: todo
-          ? 'Revisar y confirmar'
-          : '${c.pending} ${c.pending == 1 ? 'pendiente' : 'pendientes'}',
-      fill: todo ? GFootFill.ink : GFootFill.red,
-      onMain: todo ? () => _abrirConfirmacion(session) : null,
-      onUp: () => _anterior(session),
-      onDown: () => _siguiente(session),
-    );
-  }
-
-  /// Capítulo suelto, siempre en edición: la CTA de siempre y, pegadas a su
-  /// derecha, Guardar · Deshacer · Cancelar. Guardar y Cancelar solo se
-  /// activan con cambios sin guardar; Deshacer, mientras haya historial.
-  Widget _barraSuelto(ReviewSession session, GProseEditActions edicion) {
-    final sinGuardar = session.sinGuardar;
-    return ValueListenableBuilder<UndoHistoryValue>(
-      valueListenable: edicion.historial,
-      builder: (context, historial, _) => GFoot.conIconos(
-        label: 'Revisar y confirmar',
-        fill: GFootFill.red,
-        onMain: () => _abrirConfirmacion(session),
-        iconos: [
-          GFootIcono(
-            icon: Icons.save_outlined,
-            tooltip: 'Guardar',
-            onTap: sinGuardar ? edicion.guardar : null,
-            acento: true,
-          ),
-          GFootIcono(
-            icon: Icons.undo,
-            tooltip: 'Deshacer',
-            onTap: historial.canUndo ? edicion.historial.undo : null,
-          ),
-          GFootIcono(
-            icon: Icons.close,
-            tooltip: 'Descartar cambios',
-            onTap: sinGuardar ? edicion.cancelar : null,
-          ),
-        ],
-      ),
+  Widget _cuerpo(GAiAssistantController? ai) {
+    return GLectorCuerpo(
+      navegador: _navegador,
+      onEdicion: (acciones) => setState(() => _edicion = acciones),
+      onSeleccionCambia: ai == null ? null : seleccionCambia,
+      onSeleccionVacia: ai == null ? null : ocultarPill,
     );
   }
 
@@ -462,61 +256,4 @@ class _VistaState extends State<_Vista> with GAiConAsistente<_Vista> {
         text: s.currentText(),
         counts: s.counts(),
       ));
-}
-
-/// Estado del guardado en mono, bajo el título. Un borrador sin guardar manda
-/// sobre todo lo demás y va en el acento, para que no pase desapercibido.
-class _EstadoGuardado extends StatelessWidget {
-  final SaveStatus status;
-  final bool sinGuardar;
-  const _EstadoGuardado({required this.status, this.sinGuardar = false});
-
-  @override
-  Widget build(BuildContext context) {
-    if (sinGuardar) return const GMono.red('● Cambios sin guardar');
-    final (String texto, Color color) = switch (status) {
-      SaveStatus.idle => ('', GColors.grey2),
-      SaveStatus.pending => ('○ Sin guardar', GColors.grey2),
-      SaveStatus.saving => ('↻ Guardando…', GColors.grey2),
-      SaveStatus.saved => ('✓ Guardado', GColors.grey2),
-      SaveStatus.error => ('✕ Error', GColors.accent),
-    };
-    if (texto.isEmpty) return const SizedBox.shrink();
-    return GMono(texto, color: color);
-  }
-}
-
-/// Franja de progreso: «2/5», una celda por sugerencia y las pendientes en
-/// rojo.
-class _Progreso extends StatelessWidget {
-  final int done;
-  final int total;
-
-  const _Progreso({required this.done, required this.total});
-
-  @override
-  Widget build(BuildContext context) {
-    final pendientes = total - done;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: GSpacing.page, vertical: GSpacing.barTop),
-      decoration: BoxDecoration(
-        border: Border(
-            bottom: BorderSide(color: GColors.ink, width: GSpacing.border)),
-      ),
-      child: Row(
-        children: [
-          GMono('$done/$total'),
-          const SizedBox(width: GSpacing.blockV),
-          Expanded(child: GTicks(total: total, done: done)),
-          const SizedBox(width: GSpacing.blockV),
-          if (pendientes > 0)
-            GMono.red(
-                '$pendientes ${pendientes == 1 ? 'pendiente' : 'pendientes'}')
-          else
-            const GMono('Completado'),
-        ],
-      ),
-    );
-  }
 }

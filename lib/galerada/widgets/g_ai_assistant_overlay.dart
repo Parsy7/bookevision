@@ -38,6 +38,8 @@ mixin GAiConAsistente<T extends StatefulWidget> on State<T> {
     Widget pantalla,
     GAiAssistantController? ai, {
     double extraBottomOffset = 0,
+    bool flotante = true,
+    VoidCallback? alPreguntar,
   }) {
     final seleccion = _seleccion;
     return Stack(
@@ -46,9 +48,12 @@ mixin GAiConAsistente<T extends StatefulWidget> on State<T> {
         if (ai != null && seleccion != null)
           GAiSelectionPillOverlay(onTap: () {
             ai.abrir(seleccion: seleccion, anclable: _anclable);
+            alPreguntar?.call();
             ocultarPill();
           }),
-        if (ai != null)
+        // En el escritorio el chat va acoplado a un lado ([GAiPanelAcoplado])
+        // y no hay burbuja ni panel flotante.
+        if (ai != null && flotante)
           GAiAssistantOverlay(
               controller: ai, extraBottomOffset: extraBottomOffset),
       ],
@@ -199,9 +204,61 @@ class _Burbuja extends StatelessWidget {
   }
 }
 
+/// El chat con la IA acoplado a un lado de la pantalla, para el escritorio:
+/// el mismo panel de siempre, pero siempre abierto y del alto que le dé el
+/// padre, sin tirador para estirarlo ni velo detrás.
+class GAiPanelAcoplado extends StatelessWidget {
+  final GAiAssistantController controller;
+
+  /// Esconde el panel (no borra la conversación).
+  final VoidCallback onCerrar;
+
+  /// Lo que va entre la conversación y el campo de texto (las acciones
+  /// rápidas, p. ej.).
+  final Widget? sobreEntrada;
+
+  /// Lo que va justo bajo la cabecera (las pestañas, p. ej.).
+  final Widget? bajoCabecera;
+
+  const GAiPanelAcoplado({
+    super.key,
+    required this.controller,
+    required this.onCerrar,
+    this.sobreEntrada,
+    this.bajoCabecera,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      type: MaterialType.transparency,
+      child: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) => _Panel(
+          controller: controller,
+          acoplado: true,
+          onCerrar: onCerrar,
+          sobreEntrada: sobreEntrada,
+          bajoCabecera: bajoCabecera,
+        ),
+      ),
+    );
+  }
+}
+
 class _Panel extends StatefulWidget {
   final GAiAssistantController controller;
-  const _Panel({required this.controller});
+  final bool acoplado;
+  final VoidCallback? onCerrar;
+  final Widget? sobreEntrada;
+  final Widget? bajoCabecera;
+  const _Panel({
+    required this.controller,
+    this.acoplado = false,
+    this.onCerrar,
+    this.sobreEntrada,
+    this.bajoCabecera,
+  });
 
   @override
   State<_Panel> createState() => _PanelState();
@@ -214,7 +271,7 @@ class _PanelState extends State<_Panel> {
   /// Al abrir, el campo queda enfocado (se ve el cursor) pero sin teclado:
   /// en solo lectura no abre conexión con el teclado. El primer toque lo
   /// pasa a editable y, como ya tiene el foco, el teclado sale entonces.
-  bool _soloFoco = true;
+  late bool _soloFoco = !widget.acoplado;
 
   @override
   void initState() {
@@ -291,30 +348,35 @@ class _PanelState extends State<_Panel> {
   @override
   Widget build(BuildContext context) {
     final c = widget.controller;
+    final acoplado = widget.acoplado;
     return Container(
       decoration: BoxDecoration(
         color: GColors.sheet,
-        border: Border.all(color: GColors.ink, width: GSpacing.border),
+        // Acoplado, los bordes los pone la columna que lo aloja.
+        border: acoplado
+            ? null
+            : Border.all(color: GColors.ink, width: GSpacing.border),
       ),
       child: Column(
         children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onVerticalDragUpdate: (d) => c.resize(-d.delta.dy),
-            child: SizedBox(
-              height: GSpacing.aiHandle,
-              child: Center(
-                child: Container(
-                  width: GSpacing.aiHandleW,
-                  height: GSpacing.aiHandleH,
-                  color: GColors.grey3,
+          if (!acoplado)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onVerticalDragUpdate: (d) => c.resize(-d.delta.dy),
+              child: SizedBox(
+                height: GSpacing.aiHandle,
+                child: Center(
+                  child: Container(
+                    width: GSpacing.aiHandleW,
+                    height: GSpacing.aiHandleH,
+                    color: GColors.grey3,
+                  ),
                 ),
               ),
             ),
-          ),
           Container(
-            padding: const EdgeInsets.fromLTRB(
-                GSpacing.blockV, 0, GSpacing.gapSm, GSpacing.gapSm),
+            padding: EdgeInsets.fromLTRB(GSpacing.blockV,
+                acoplado ? GSpacing.gapSm : 0, GSpacing.gapSm, GSpacing.gapSm),
             decoration: BoxDecoration(border: _linea),
             child: Row(
               children: [
@@ -322,14 +384,17 @@ class _PanelState extends State<_Panel> {
                 const SizedBox(width: GSpacing.gapSm),
                 const Expanded(child: GMono('Asistente IA')),
                 GIconButton(
-                  icon: Icons.keyboard_arrow_down,
-                  tooltip: 'Minimizar',
+                  icon: acoplado
+                      ? Icons.keyboard_double_arrow_right
+                      : Icons.keyboard_arrow_down,
+                  tooltip: acoplado ? 'Ocultar el asistente' : 'Minimizar',
                   outlined: true,
-                  onPressed: c.minimizar,
+                  onPressed: acoplado ? widget.onCerrar : c.minimizar,
                 ),
               ],
             ),
           ),
+          if (widget.bajoCabecera != null) widget.bajoCabecera!,
           if (c.seleccionContexto != null)
             _Contexto(texto: c.seleccionContexto!),
           Expanded(
@@ -362,6 +427,7 @@ class _PanelState extends State<_Panel> {
                     },
                   ),
           ),
+          if (widget.sobreEntrada != null) widget.sobreEntrada!,
           Container(
             padding: const EdgeInsets.all(GSpacing.gapSm),
             decoration: BoxDecoration(
@@ -383,7 +449,9 @@ class _PanelState extends State<_Panel> {
                       ),
                       child: TextField(
                         controller: _controller,
-                        autofocus: true,
+                        // Acoplado está siempre a la vista: quitarle el foco al
+                        // editor del capítulo al abrir sería un robo.
+                        autofocus: !acoplado,
                         readOnly: _soloFoco,
                         showCursor: true,
                         onTap: () {

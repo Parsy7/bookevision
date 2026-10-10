@@ -118,6 +118,28 @@ class GSpacing {
   /// Alto máximo del "Sobre: …" desplegado; más allá hace scroll.
   static const double aiContextMax = 160;
 
+  // ── Escritorio (tres columnas) ──
+
+  /// Ancho de la columna de capítulos y del panel del asistente.
+  static const double escPanelIzq = 300;
+  static const double escPanelIA = 360;
+
+  /// Ancho máximo de la columna de texto del editor.
+  static const double escTexto = 760;
+
+  /// Ancho de un diálogo de escritorio (exportar).
+  static const double escDialogo = 480;
+
+  /// Alto de la barra superior y de la barra de estado de abajo.
+  static const double escBarra = 52;
+  static const double escEstado = 32;
+
+  /// Columna del numeral romano en las filas de capítulo.
+  static const double escNumeral = 40;
+
+  /// Ancho de la ventana a partir del cual el asistente arranca abierto.
+  static const double escAnchoAsistente = 1240;
+
   /// Padding de página para un scroll que llega al borde inferior: reserva el
   /// hueco de la barra de navegación de Android.
   static EdgeInsets pageScroll(BuildContext context) => EdgeInsets.fromLTRB(
